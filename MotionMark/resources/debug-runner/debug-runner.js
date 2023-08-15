@@ -551,8 +551,6 @@ Utilities.extendObject(window.benchmarkController, {
         suitesManager.updateUIFromLocalStorage();
         suitesManager.updateEditsElementsState();
 
-        benchmarkController.detectSystemFrameRate();
-
         var dropTarget = document.getElementById("drop-target");
         function stopEvent(e) {
             e.stopPropagation();
@@ -597,6 +595,27 @@ Utilities.extendObject(window.benchmarkController, {
             reader.readAsText(file);
             document.title = "File: " + reader.filename;
         }, false);
+
+        this.frameRateDetectionComplete = false;
+        this.updateStartButtonState();
+
+        setTimeout(async () => {
+            let targetFrameRate = 60;
+            let progressElement = document.querySelector("#frame-rate-detection span");
+
+            try {
+                targetFrameRate = await benchmarkController.determineFrameRate(progressElement);
+            } catch (err) {
+                alert(err);
+            }
+
+            document.getElementById("frame-rate-detection").textContent = `Detected system frame rate as ${targetFrameRate} FPS`;
+            document.getElementById("system-frame-rate").value = targetFrameRate;
+            document.getElementById("frame-rate").value = targetFrameRate;
+
+            this.frameRateDetectionComplete = true;
+            this.updateStartButtonState();
+        }, 0);
     },
 
     updateStartButtonState: function()
@@ -606,7 +625,8 @@ Utilities.extendObject(window.benchmarkController, {
             startButton.disabled = true;
             return;
         }
-        startButton.disabled = !suitesManager.isAtLeastOneTestSelected();
+        
+        startButton.disabled = (!suitesManager.isAtLeastOneTestSelected()) || !this.frameRateDetectionComplete;
     },
 
     onBenchmarkOptionsChanged: function(event)
@@ -627,6 +647,7 @@ Utilities.extendObject(window.benchmarkController, {
     startBenchmark: function()
     {
         benchmarkController.determineCanvasSize();
+        // FIXME: frame-rate?
         benchmarkController.options = Utilities.mergeObjects(this.benchmarkDefaultParameters, optionsManager.updateLocalStorageFromUI());
         benchmarkController.suites = suitesManager.updateLocalStorageFromUI();
         this._startBenchmark(benchmarkController.suites, benchmarkController.options, "running-test");
@@ -692,47 +713,5 @@ Utilities.extendObject(window.benchmarkController, {
         sectionsManager.setSectionHeader("test-graph", testName);
         sectionsManager.showSection("test-graph", true);
         this.updateGraphData(testResult, testData, benchmarkRunnerClient.results.options);
-    },
-
-    detectSystemFrameRate: function()
-    {
-        let last = 0;
-        let average = 0;
-        let count = 0;
-
-        const finish = function()
-        {
-            const commonFrameRates = [15, 30, 45, 60, 90, 120, 144];
-            const distanceFromFrameRates = commonFrameRates.map(rate => {
-                return Math.abs(Math.round(rate - average));
-            });
-            let shortestDistance = Number.MAX_VALUE;
-            let targetFrameRate = undefined;
-            for (let i = 0; i < commonFrameRates.length; i++) {
-                if (distanceFromFrameRates[i] < shortestDistance) {
-                    targetFrameRate = commonFrameRates[i];
-                    shortestDistance = distanceFromFrameRates[i];
-                }
-            }
-            targetFrameRate = targetFrameRate || 60;
-            document.getElementById("frame-rate-detection").textContent = `Detected system frame rate as ${targetFrameRate} FPS`;
-            document.getElementById("system-frame-rate").value = targetFrameRate;
-            document.getElementById("frame-rate").value = Math.round(targetFrameRate * 5 / 6);
-        }
-
-        const tick = function(timestamp)
-        {
-            average -= average / 30;
-            average += 1000. / (timestamp - last) / 30;
-            document.querySelector("#frame-rate-detection span").textContent = Math.round(average);
-            last = timestamp;
-            count++;
-            if (count < 300)
-                requestAnimationFrame(tick);
-            else
-                finish();
-        }
-
-        requestAnimationFrame(tick);
     }
 });

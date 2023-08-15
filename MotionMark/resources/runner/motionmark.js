@@ -473,6 +473,7 @@ window.benchmarkController = {
         "warmup-length": 2000,
         "warmup-frame-count": 30,
         "first-frame-minimum-length": 0
+        // FIXME: add frame-rate
     },
 
     initialize: function()
@@ -507,6 +508,52 @@ window.benchmarkController = {
         document.body.classList.add("large");
     },
 
+    determineFrameRate: function(detectionProgressElement)
+    {
+        return new Promise((resolve, reject) => {
+            let last = 0;
+            let average = 0;
+            let count = 0;
+
+            const finish = function()
+            {
+                const commonFrameRates = [15, 30, 45, 60, 90, 120, 144];
+                const distanceFromFrameRates = commonFrameRates.map(rate => {
+                    return Math.abs(Math.round(rate - average));
+                });
+
+                let shortestDistance = Number.MAX_VALUE;
+                let targetFrameRate = undefined;
+                for (let i = 0; i < commonFrameRates.length; i++) {
+                    if (distanceFromFrameRates[i] < shortestDistance) {
+                        targetFrameRate = commonFrameRates[i];
+                        shortestDistance = distanceFromFrameRates[i];
+                    }
+                }
+                if (!targetFrameRate)
+                    reject("Failed to map frame rate to a common frame rate");
+
+                resolve(targetFrameRate);
+            }
+
+            const tick = function(timestamp)
+            {
+                average -= average / 30;
+                average += 1000. / (timestamp - last) / 30;
+                if (detectionProgressElement)
+                    detectionProgressElement.textContent = Math.round(average);
+                last = timestamp;
+                count++;
+                if (count < 300)
+                    requestAnimationFrame(tick);
+                else
+                    finish();
+            }
+
+            requestAnimationFrame(tick);
+        })
+    },
+
     addOrientationListenerIfNecessary: function()
     {
         if (!("orientation" in window))
@@ -534,8 +581,6 @@ window.benchmarkController = {
 
     _startBenchmark: function(suites, options, frameContainerID)
     {
-        benchmarkController.determineCanvasSize();
-
         var configuration = document.body.className.match(/small|medium|large/);
         if (configuration)
             options[Strings.json.configuration] = configuration[0];
@@ -548,9 +593,19 @@ window.benchmarkController = {
         sectionsManager.showSection("test-container");
     },
 
-    startBenchmark: function()
+    startBenchmark: async function()
     {
+        benchmarkController.determineCanvasSize();
+
         var options = this.benchmarkDefaultParameters;
+
+        try {
+            options["frame-rate"] = await this.determineFrameRate();
+        } catch (err) {
+            alert(err);
+            return;
+        }
+        
         this._startBenchmark(Suites, options, "test-container");
     },
 
