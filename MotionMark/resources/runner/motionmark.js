@@ -402,39 +402,39 @@ class ResultsTable {
     }
 }
 
-window.benchmarkRunnerClient = {
-    iterationCount: 1,
-    options: null,
-    results: null,
-
-    initialize: function(suites, options)
+class BenchmarkRunnerClient {
+    iterationCount = 1;
+    options = null;
+    results = null;
+    
+    initialize(suites, options)
     {
         this.options = options;
-    },
+    }
 
-    willStartFirstIteration: function()
+    willStartFirstIteration()
     {
         this.results = new ResultsDashboard(Strings.version, this.options);
-    },
+    }
 
-    didRunSuites: function(suitesSamplers)
+    didRunSuites(suitesSamplers)
     {
         this.results.push(suitesSamplers);
-    },
+    }
 
-    didRunTest: function(testData)
+    didRunTest(testData)
     {
         this.results.calculateScore(testData);
-    },
+    }
 
-    didFinishLastIteration: function()
+    didFinishLastIteration()
     {
         benchmarkController.showResults();
     }
-};
+}
 
-window.sectionsManager = {
-    showSection: function(sectionIdentifier, pushState)
+class SectionsManager {
+    showSection(sectionIdentifier, pushState)
     {
         var sections = document.querySelectorAll("main > section");
         for (var i = 0; i < sections.length; ++i) {
@@ -453,30 +453,30 @@ window.sectionsManager = {
 
         if (pushState)
             history.pushState({section: sectionIdentifier}, document.title);
-    },
+    }
 
-    setSectionVersion: function(sectionIdentifier, version)
+    setSectionVersion(sectionIdentifier, version)
     {
         document.querySelector("#" + sectionIdentifier + " .version").textContent = version;
-    },
+    }
 
-    setSectionScore: function(sectionIdentifier, score, confidence, fps)
+    setSectionScore(sectionIdentifier, score, confidence, fps)
     {
         if (fps && score)
             document.querySelector("#" + sectionIdentifier + " .score").textContent = `${score} @ ${fps}fps`;
         if (confidence)
             document.querySelector("#" + sectionIdentifier + " .confidence").textContent = confidence;
-    },
+    }
 
-    populateTable: function(tableIdentifier, headers, dashboard)
+    populateTable(tableIdentifier, headers, dashboard)
     {
         var table = new ResultsTable(document.getElementById(tableIdentifier), headers);
         table.showIterations(dashboard);
     }
-};
+}
 
-window.benchmarkController = {
-    benchmarkDefaultParameters: {
+class BenchmarkController {
+    benchmarkDefaultParameters = {
         "test-interval": 30,
         "display": "minimal",
         "tiles": "big",
@@ -489,9 +489,9 @@ window.benchmarkController = {
         "first-frame-minimum-length": 0,
         "system-frame-rate": 60,
         "frame-rate": 60,
-    },
+    };
 
-    initialize: async function()
+    async initialize()
     {
         document.title = Strings.text.title.replace("%s", Strings.version);
         document.querySelectorAll(".version").forEach(function(e) {
@@ -509,9 +509,9 @@ window.benchmarkController = {
         } catch (e) {
         }
         this.frameRateDeterminationComplete(targetFrameRate);
-    },
+    }
     
-    frameRateDeterminationComplete: function(frameRate)
+    frameRateDeterminationComplete(frameRate)
     {
         const frameRateLabel = document.getElementById("frame-rate-label");
 
@@ -531,9 +531,9 @@ window.benchmarkController = {
 
         this._startButton.textContent = Strings.text.runBenchmark;
         this._startButton.disabled = false;
-    },
+    }
 
-    determineCanvasSize: function()
+    determineCanvasSize()
     {
         var match = window.matchMedia("(max-device-width: 760px)");
         if (match.matches) {
@@ -554,9 +554,9 @@ window.benchmarkController = {
         }
 
         document.body.classList.add("large");
-    },
+    }
 
-    determineFrameRate: function(detectionProgressElement)
+    determineFrameRate(detectionProgressElement)
     {
         return new Promise((resolve, reject) => {
             let firstTimestamp;
@@ -605,9 +605,9 @@ window.benchmarkController = {
 
             requestAnimationFrame(tick);
         })
-    },
+    }
 
-    addOrientationListenerIfNecessary: function()
+    addOrientationListenerIfNecessary()
     {
         if (!("orientation" in window))
             return;
@@ -615,9 +615,9 @@ window.benchmarkController = {
         this.orientationQuery = window.matchMedia("(orientation: landscape)");
         this._orientationChanged(this.orientationQuery);
         this.orientationQuery.addListener(this._orientationChanged);
-    },
+    }
 
-    _orientationChanged: function(match)
+    _orientationChanged(match)
     {
         benchmarkController.isInLandscapeOrientation = match.matches;
         if (match.matches)
@@ -626,14 +626,14 @@ window.benchmarkController = {
             document.querySelector(".portrait-orientation-check").classList.remove("hidden");
 
         benchmarkController.updateStartButtonState();
-    },
+    }
 
-    updateStartButtonState: function()
+    updateStartButtonState()
     {
         document.getElementById("start-button").disabled = !this.isInLandscapeOrientation;
-    },
+    }
 
-    _startBenchmark: function(suites, options, frameContainerID)
+    _startBenchmark(suites, options, frameContainerID)
     {
         var configuration = document.body.className.match(/small|medium|large/);
         if (configuration)
@@ -645,17 +645,17 @@ window.benchmarkController = {
         runner.runMultipleIterations();
 
         sectionsManager.showSection("test-container");
-    },
+    }
 
-    startBenchmark: async function()
+    async startBenchmark()
     {
         benchmarkController.determineCanvasSize();
 
         let options = this.benchmarkDefaultParameters;
         this._startBenchmark(Suites, options, "test-container");
-    },
+    }
 
-    showResults: function()
+    showResults()
     {
         if (!this.addedKeyEvent) {
             document.addEventListener("keypress", this.handleKeyPress, false);
@@ -672,9 +672,9 @@ window.benchmarkController = {
         sectionsManager.populateTable("results-score", Headers.score, dashboard);
         sectionsManager.populateTable("results-data", Headers.details, dashboard);
         sectionsManager.showSection("results", true);
-    },
+    }
 
-    handleKeyPress: function(event)
+    handleKeyPress(event)
     {
         switch (event.charCode)
         {
@@ -688,17 +688,17 @@ window.benchmarkController = {
             benchmarkController.selectResults(event.target);
             break;
         }
-    },
+    }
 
-    hideDebugInfo: function()
+    hideDebugInfo()
     {
         var overlay = document.getElementById("overlay");
         if (!overlay)
             return;
         document.body.removeChild(overlay);
-    },
+    }
 
-    showDebugInfo: function()
+    showDebugInfo()
     {
         if (document.getElementById("overlay"))
             return;
@@ -738,9 +738,9 @@ window.benchmarkController = {
         button.onclick = function() {
             benchmarkController.hideDebugInfo();
         };
-    },
+    }
 
-    selectResults: function(target)
+    selectResults(target)
     {
         target.selectRange = ((target.selectRange || 0) + 1) % 3;
 
@@ -764,7 +764,17 @@ window.benchmarkController = {
         }
         selection.addRange(range);
     }
-};
+}
 
-window.addEventListener("load", function() { benchmarkController.initialize(); });
+window.benchmarkControllerClass = BenchmarkController;
+window.benchmarkRunnerClientClass = BenchmarkRunnerClient;
+window.sectionsManagerClass = SectionsManager;
 
+window.addEventListener("load", () => {
+
+    window.benchmarkRunnerClient = new benchmarkRunnerClientClass();
+    window.sectionsManager = new sectionsManagerClass();
+    window.benchmarkController = new benchmarkControllerClass();
+
+    benchmarkController.initialize();
+});
