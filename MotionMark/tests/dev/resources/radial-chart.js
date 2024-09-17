@@ -35,15 +35,47 @@ class Size {
 
 // To be moved.
 class MathHelpers {
-    
     static random(min, max)
     {
         return min + Pseudo.random() * (max - min);
     }
-    
+
+    static rotatingColor(hueOffset, cycleLengthMs, saturation, lightness)
+    {
+        return "hsl("
+            + MathHelpers.dateFractionalValue(cycleLengthMs, hueOffset) * 360 + ", "
+            + ((saturation || .8) * 100).toFixed(0) + "%, "
+            + ((lightness || .35) * 100).toFixed(0) + "%)";
+    }
+
+    // Returns a fractional value that wraps around within [0,1]
+    static dateFractionalValue(cycleLengthMs, offset)
+    {
+        return (offset + Date.now() / (cycleLengthMs || 2000)) % 1;
+    }
 }
 
-const USStates = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY'];
+class ItemData {
+    constructor(deptNumber, label, imageURL)
+    {
+        this.deptNumber = deptNumber;
+        this.label = label;
+        this.imageURL = imageURL;
+        
+        this.hueOffset = MathHelpers.random(0.1, 0.2);
+        this.colorLightness = MathHelpers.random(0.5, 0.7);
+        this.colorSaturation = MathHelpers.random(0.2, 0.5);
+    }
+    
+    loadImage()
+    {
+        return new Promise(resolve => {
+            this.image = new Image();
+            this.image.onload = resolve;
+            this.image.src = this.imageURL;
+        });
+    }
+}
 
 class RandomWalk {
     constructor(min, max, stepFraction)
@@ -54,7 +86,6 @@ class RandomWalk {
         this.value = MathHelpers.random(this.min, this.max);
     }
     
-    // Really need some kind of trends here.
     nextValue()
     {
         const scale = (this.max - this.min) * this.stepFraction;
@@ -64,15 +95,64 @@ class RandomWalk {
     }
 }
 
+class SmoothWalk {
+    static timeOrigin;
+    constructor(min, max)
+    {
+        this.min = min;
+        this.max = max;
+        
+        const minWaveLength = 200;
+        const maxWaveLength = 2000;
+
+        const amplitudeMin = 0.2;
+        const amplitudeMax = 1;
+        // We superimpose some sin functions to generate the values.
+        this.wave1Phase = Pseudo.random();
+        this.wave1Length = MathHelpers.random(minWaveLength, maxWaveLength);
+        this.wave1Amplitude = MathHelpers.random(amplitudeMin, amplitudeMax);
+
+        this.wave2Phase = Pseudo.random();
+        this.wave2Length = MathHelpers.random(minWaveLength, maxWaveLength);
+        this.wave2Amplitude = MathHelpers.random(amplitudeMin, amplitudeMax);
+
+        this.wave3Phase = Pseudo.random();
+        this.wave3Length = MathHelpers.random(minWaveLength, maxWaveLength);
+        this.wave3Amplitude = MathHelpers.random(amplitudeMin, amplitudeMax);
+        
+        if (!SmoothWalk.timeOrigin)
+            SmoothWalk.timeOrigin = new Date();
+    }
+    
+    nextValue()
+    {
+        this.value = this.#computeValue();
+        console.log(`smooth value ${this.value}`)
+        return this.value;
+    }
+    
+    #computeValue()
+    {
+        const elapsedTime = Date.now() - SmoothWalk.timeOrigin;
+        const wave1Value = this.wave1Amplitude * (0.5 + Math.sin(this.wave1Amplitude + elapsedTime / this.wave1Length) / 2);
+        const wave2Value = this.wave2Amplitude * (0.5 + Math.sin(this.wave2Amplitude + elapsedTime / this.wave2Length) / 2);
+        const wave3Value = this.wave3Amplitude * (0.5 + Math.sin(this.wave3Amplitude + elapsedTime / this.wave3Length) / 2);
+        
+        return this.min + (this.max - this.min) * (wave1Value + wave2Value + wave3Value) / (this.wave1Amplitude + this.wave2Amplitude + this.wave3Amplitude);
+    }
+}
+
 const TwoPI = Math.PI * 2;
 const Clockwise = false;
 const CounterClockwise = true;
 
 class RadialChart {
-    constructor(center, radius)
+    constructor(stage, center, innerRadius, outerRadius)
     {
+        this.stage = stage;
         this.center = center;
-        this.radius = radius;
+        this.innerRadius = innerRadius;
+        this.outerRadius = outerRadius;
         this._values = [];
         this.#computeDimensions();
 
@@ -94,7 +174,7 @@ class RadialChart {
         
         const startIndex = this._values.length;
         for (let i = startIndex; i < this._complexity; ++i)
-            this._values.push(new RandomWalk(this.innerRadius, this.radius, 1 / 100));
+            this._values.push(new SmoothWalk(this.innerRadius, this.outerRadius, 1 / 100));
     }
     
     draw(ctx)
@@ -104,9 +184,11 @@ class RadialChart {
         this.angleOffsetRadians = Math.PI / 2; // Start at the top, rather than the right.
 
         for (let i = 0; i < this.numSpokes; ++i) {
-            this.#drawWedge(ctx, i);
-            this.#drawBadge(ctx, i);
-            this.#drawWedgeLabels(ctx, i);
+            const instance = this.stage.instanceForIndex(i);
+
+            this.#drawWedge(ctx, i, instance);
+            this.#drawBadge(ctx, i, instance);
+            this.#drawWedgeLabels(ctx, i, instance);
         }
 
         this.#drawGraphAxes(ctx);
@@ -114,7 +196,7 @@ class RadialChart {
     
     #computeDimensions()
     {
-        this.innerRadius = this.radius / 3;
+
     }
 
     #drawGraphAxes(ctx)
@@ -126,14 +208,14 @@ class RadialChart {
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.arc(this.center.x, this.center.y, this.radius, 0, TwoPI, Clockwise);
+        ctx.arc(this.center.x, this.center.y, this.outerRadius, 0, TwoPI, Clockwise);
         ctx.stroke();
 
         for (let i = 0; i < this.numSpokes; ++i) {
             const angleRadians = this.#wedgeStartAngle(i);
 
             const startPoint = this.center.add(GeometryHelpers.createPointOnCircle(angleRadians, this.innerRadius));
-            const endPoint = this.center.add(GeometryHelpers.createPointOnCircle(angleRadians, this.radius));
+            const endPoint = this.center.add(GeometryHelpers.createPointOnCircle(angleRadians, this.outerRadius));
 
             ctx.beginPath();
             ctx.moveTo(startPoint.x, startPoint.y);
@@ -146,44 +228,52 @@ class RadialChart {
     {
         return index * this.wedgeAngleRadians - this.angleOffsetRadians;
     }
-
-    #drawWedge(ctx, index)
+    
+    #pathForWedge(index, outerRadius)
     {
         const startAngleRadians = this.#wedgeStartAngle(index);
         const endAngleRadians = startAngleRadians + this.wedgeAngleRadians;
 
-        const wedgeOuterRadius = this._values[index].nextValue();
-
-        const wedgePath = new Path2D();
+        const path = new Path2D();
 
         const firstStartPoint = this.center.add(GeometryHelpers.createPointOnCircle(startAngleRadians, this.innerRadius));
-        const firstEndPoint = this.center.add(GeometryHelpers.createPointOnCircle(startAngleRadians, wedgeOuterRadius));
+        const firstEndPoint = this.center.add(GeometryHelpers.createPointOnCircle(startAngleRadians, outerRadius));
 
-        wedgePath.moveTo(firstStartPoint.x, firstStartPoint.y);
-        wedgePath.lineTo(firstEndPoint.x, firstEndPoint.y);
+        path.moveTo(firstStartPoint.x, firstStartPoint.y);
+        path.lineTo(firstEndPoint.x, firstEndPoint.y);
 
-        wedgePath.arc(this.center.x, this.center.y, wedgeOuterRadius, startAngleRadians, endAngleRadians, Clockwise);
+        path.arc(this.center.x, this.center.y, outerRadius, startAngleRadians, endAngleRadians, Clockwise);
 
         const secondEndPoint = this.center.add(GeometryHelpers.createPointOnCircle(endAngleRadians, this.innerRadius));
-        wedgePath.lineTo(secondEndPoint.x, secondEndPoint.y);
-        wedgePath.arc(this.center.x, this.center.y, this.innerRadius, endAngleRadians, startAngleRadians, CounterClockwise);
+        path.lineTo(secondEndPoint.x, secondEndPoint.y);
+        path.arc(this.center.x, this.center.y, this.innerRadius, endAngleRadians, startAngleRadians, CounterClockwise);
+        path.closePath();
 
-        const gradient = ctx.createRadialGradient(this.center.x, this.center.y, this.innerRadius, this.center.x, this.center.y, wedgeOuterRadius);
-        gradient.addColorStop(0, Stage.randomColor());
-        gradient.addColorStop(0.9, Stage.randomColor());
+        return path;
+    }
+
+    #drawWedge(ctx, index, instance)
+    {
+        const outerRadius = this._values[index].nextValue();
+        const wedgePath = this.#pathForWedge(index, outerRadius);
+
+        const gradient = ctx.createRadialGradient(this.center.x, this.center.y, this.innerRadius, this.center.x, this.center.y, outerRadius);
+        
+        const colorCycleLengthMS = 1200;
+        gradient.addColorStop(0, MathHelpers.rotatingColor(instance.hueOffset, colorCycleLengthMS, instance.colorSaturation, instance.colorLightness));
+        gradient.addColorStop(0.9, MathHelpers.rotatingColor(instance.hueOffset + 0.4, colorCycleLengthMS, instance.colorSaturation, instance.colorLightness));
 
         ctx.fillStyle = gradient;
         ctx.fill(wedgePath);
     }
     
-    #drawWedgeLabels(ctx, index)
+    #drawWedgeLabels(ctx, index, instance)
     {
         const midAngleRadians = this.#wedgeStartAngle(index) + 0.5 * this.wedgeAngleRadians;
 
         const textInset = 15;
         const textCenterPoint = this.center.add(GeometryHelpers.createPointOnCircle(midAngleRadians, this.innerRadius - textInset));
 
-        const stateIndex = index % USStates.length;
         const labelAngle = midAngleRadians + Math.PI / 2;
         
         ctx.save();
@@ -193,48 +283,54 @@ class RadialChart {
         ctx.translate(textCenterPoint.x, textCenterPoint.y);
         ctx.rotate(labelAngle);
         
-        const label = USStates[stateIndex];
-        const textSize = ctx.measureText(label);
-        ctx.fillText(USStates[stateIndex], -textSize.width / 2, 0);
+        const textSize = ctx.measureText(instance.deptNumber);
+        ctx.fillText(instance.deptNumber, -textSize.width / 2, 0);
         ctx.restore();
         
-        
-        const outerLabelLocation = this.#locationForOuterLabel(index);
-        ctx.fillStyle = 'black';
-        ctx.fillText(USStates[stateIndex], outerLabelLocation.x, outerLabelLocation.y);
-        
-        const wedgeArrowEnd = this.center.add(GeometryHelpers.createPointOnCircle(midAngleRadians, this.radius));
-        const arrowPath = this.#pathForArrow(outerLabelLocation, wedgeArrowEnd);
+        const textLabelGap = 5;
+        const outerLabelLocation = this.center.add(GeometryHelpers.createPointOnCircle(midAngleRadians, this.outerRadius + textLabelGap));
         
         ctx.save();
-        ctx.strokeStyle = 'gray';
-        ctx.setLineDash([10, 4]);
-        ctx.stroke(arrowPath);
+
+        ctx.translate(outerLabelLocation.x, outerLabelLocation.y);
+        ctx.rotate(midAngleRadians + Math.PI / 2 - 0.5);
+
+        ctx.fillStyle = 'black';
+        ctx.fillText(instance.label, 0, 0);
         ctx.restore();
+        
+        // const wedgeArrowEnd = this.center.add(GeometryHelpers.createPointOnCircle(midAngleRadians, this.outerRadius));
+        // const arrowPath = this.#pathForArrow(outerLabelLocation, wedgeArrowEnd);
+        //
+        // ctx.save();
+        // ctx.strokeStyle = 'gray';
+        // ctx.setLineDash([10, 4]);
+        // ctx.stroke(arrowPath);
+        // ctx.restore();
     }
     
-    #drawBadge(ctx, index)
+    #drawBadge(ctx, index, instance)
     {
-        // Create sprite sheet canvas?
-        const badgeURL = 'resources/department-shields/Blason_département_fr_Ain.png';
-        const badgeImage = new Image;
-        badgeImage.src = badgeURL;
-
         const midAngleRadians = this.#wedgeStartAngle(index) + 0.5 * this.wedgeAngleRadians;
         const imageAngle = midAngleRadians + Math.PI / 2;
 
-        const imageInset = 20;
-        const imageCenterPoint = this.center.add(GeometryHelpers.createPointOnCircle(midAngleRadians, this.innerRadius + imageInset));
+        const imageInset = 30;
+        const imageCenterPoint = this.center.add(GeometryHelpers.createPointOnCircle(midAngleRadians, this.outerRadius - imageInset));
 
         ctx.save();
+
+        const wedgePath = this.#pathForWedge(index, this.outerRadius);
+        ctx.clip(wedgePath);
+
         ctx.translate(imageCenterPoint.x, imageCenterPoint.y);
         ctx.rotate(imageAngle);
 
+        // FIXME: This shadow makes Safari very slow.
         ctx.shadowColor = "black";
         ctx.shadowBlur = 5;
         
         const imageSize = new Size(20, 20);
-        ctx.drawImage(badgeImage, 0, 0, imageSize.width, imageSize.height);
+        ctx.drawImage(instance.image, -imageSize.width / 2, 0, imageSize.width, imageSize.height);
         ctx.restore();
     }
     
@@ -244,26 +340,27 @@ class RadialChart {
 
         const horizonalEdgeOffset = 100;
         const verticalEdgeOffset = 20;
-        const verticalSpacing = this.radius * 2 / labelsPerSide;
+        const verticalSpacing = this.outerRadius * 2 / labelsPerSide;
 
         if (index <= labelsPerSide) {
             // Right side, going down.
-            const labelX = horizonalEdgeOffset + this.center.x + this.radius;
+            const labelX = horizonalEdgeOffset + this.center.x + this.outerRadius;
             const labelY = verticalEdgeOffset + index * verticalSpacing;
 
             return new Point(labelX, labelY);
             
         } else {
             // Left side, going up.
-            const bottomY = this.center.y + this.radius;
+            const bottomY = this.center.y + this.outerRadius;
 
-            const labelX = this.center.x - (horizonalEdgeOffset + this.radius);
+            const labelX = this.center.x - (horizonalEdgeOffset + this.outerRadius);
             const labelY = bottomY - (index - labelsPerSide) * verticalSpacing;
 
             return new Point(labelX, labelY);
         }
     }
     
+    // Unused
     #pathForArrow(startPoint, endPoint)
     {
         const arrowPath = new Path2D();
@@ -288,6 +385,7 @@ class RadialChartStage extends Stage {
         super();
         this._canvasObject = canvasObject;
         this.charts = [];
+        this.instanceData = [];
     }
 
     initialize(benchmark, options)
@@ -295,13 +393,9 @@ class RadialChartStage extends Stage {
         super.initialize(benchmark, options);
 
         this.canvasSize = new Size(this._canvasObject.width, this._canvasObject.height);
+        this._complexity = 0;
 
-        const centerPoint = new Point(this.canvasSize.width / 2, this.canvasSize.height / 2);
-        const radius = this.canvasSize.height * 0.45;
-        
-        this._complexity = 1;
-
-        this.charts.push(new RadialChart(centerPoint, radius));
+        this.#startLoadingData(benchmark);
 
         this.context = this.element.getContext("2d");
     }
@@ -312,20 +406,99 @@ class RadialChartStage extends Stage {
             return;
 
         this._complexity += count;
+        // console.log(`tune ${count} - complexity is ${this._complexity}`);
+        this.#setupCharts();
+    }
+
+    #startLoadingData(benchmark)
+    {
+        setTimeout(async () => {
+            await this.#loadDataJSON();
+            await this.#loadImages();
+
+            benchmark.readyPromise.resolve();
+        }, 0);
+    }
+    
+    async #loadDataJSON()
+    {
+        const url = "resources/departements-region.json";
+        const response = await fetch(url);
+        if (!response.ok) {
+            const errorString = `Failed to load data source ${url} with error ${response.status}`
+            console.error(errorString);
+            throw errorString;
+        }
+    
+        const jsonData = await response.json();
+        for (const item of jsonData) {
+            // this.instanceData.push(new ItemData(item['dep_name'], `resources/department-shields${item['dep_name']}.png`));
+            this.instanceData.push(new ItemData(item['num_dep'], item['dep_name'], `resources/department-shields/Ain.png`));
+        }
+    }
+
+    async #loadImages()
+    {
+        let promises = [];
+        for (const instance of this.instanceData) {
+            promises.push(instance.loadImage());
+        }
+        
+        await Promise.all(promises);
+    }
+    
+    #setupCharts()
+    {
+        const maxSegmentsPerChart = 100;
+        const numCharts = Math.ceil(this._complexity / maxSegmentsPerChart);
+
+        const perChartComplexity = Math.ceil(this._complexity / numCharts);
+        let remainingComplexity = this._complexity;
+
+        // FIXME: Outer charts should have more items because there's more space.
+        if (numCharts === this.charts.length) {
+            for (let i = this.charts.length; i > 0; --i) {
+                const chartComplexity = Math.min(perChartComplexity, remainingComplexity);
+                
+                this.charts[i - 1].complexity = chartComplexity;
+                remainingComplexity -= chartComplexity;
+            }
+            return;
+        }
+
+        this.charts = [];
+
+        const centerPoint = new Point(this.canvasSize.width / 2, this.canvasSize.height / 2);
+        
+        const outerRadius = this.canvasSize.height * 0.48;
+        const annulusRadius = outerRadius / numCharts;
+        
+        for (let i = numCharts; i > 0; --i) {
+            const outerRadius = i * annulusRadius;
+            const innerRadius = outerRadius - (annulusRadius * 0.7)
+
+            const chart = new RadialChart(this, centerPoint, innerRadius, outerRadius);
+            const chartComplexity = Math.min(perChartComplexity, remainingComplexity);
+
+            chart.complexity = chartComplexity;
+            this.charts.push(chart);
+            remainingComplexity -= chartComplexity;
+        }
+    }
+
+    instanceForIndex(index)
+    {
+        return this.instanceData[index % this.instanceData.length];
     }
 
     animate()
     {
-        console.log(`animate - complexity ${this._complexity}`);
         const context = this.context;
         context.clearRect(0, 0, this.size.x, this.size.y);
         
-        const perChartComplexity = Math.max(2, Math.floor(this._complexity / this.charts.length));
         for (const chart of this.charts) {
-            chart.complexity = perChartComplexity;
             chart.draw(context);
         }
-
     }
 
     complexity()
@@ -340,22 +513,27 @@ class RadialChartBenchmark extends Benchmark {
         const canvas = document.getElementById('stage');
         super(new RadialChartStage(canvas), options);
     }
-}
 
+    waitUntilReady()
+    {
+        this.readyPromise = new SimplePromise;
+        return this.readyPromise;
+    }
+}
 
 window.benchmarkClass = RadialChartBenchmark;
 
 class FakeController {
     constructor()
     {
-        this.initialComplexity = 50;
+        this.initialComplexity = 102;
         this.startTime = new Date;
     }
 
     shouldStop()
     {
         const now = new Date();
-        return (now - this.startTime) > 5000;
+        return (now - this.startTime) > 15000;
     }
     
     results()
@@ -365,14 +543,15 @@ class FakeController {
 }
 
 // Testing
-// window.addEventListener('load', () => {
-//
-//     var benchmark = new window.benchmarkClass({ });
-//     benchmark._controller = new FakeController();
-//
-//     benchmark.run().then(function(testData) {
-//
-//     });
-//
-// }, false);
+window.addEventListener('load', () => {
+    if (window.parentWindow)
+        return;
 
+    var benchmark = new window.benchmarkClass({ });
+    benchmark._controller = new FakeController();
+
+    benchmark.run().then(function(testData) {
+
+    });
+
+}, false);
