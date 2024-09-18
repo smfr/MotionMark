@@ -127,7 +127,6 @@ class SmoothWalk {
     nextValue()
     {
         this.value = this.#computeValue();
-        console.log(`smooth value ${this.value}`)
         return this.value;
     }
     
@@ -277,7 +276,7 @@ class RadialChart {
         const labelAngle = midAngleRadians + Math.PI / 2;
         
         ctx.save();
-        ctx.font = "10px sans-serif";
+        ctx.font = '12px sans-serif';
         ctx.fillStyle = 'black';
         
         ctx.translate(textCenterPoint.x, textCenterPoint.y);
@@ -295,6 +294,7 @@ class RadialChart {
         ctx.translate(outerLabelLocation.x, outerLabelLocation.y);
         ctx.rotate(midAngleRadians + Math.PI / 2 - 0.5);
 
+        ctx.font = '12px sans-serif';
         ctx.fillStyle = 'black';
         ctx.fillText(instance.label, 0, 0);
         ctx.restore();
@@ -391,13 +391,22 @@ class RadialChartStage extends Stage {
     initialize(benchmark, options)
     {
         super.initialize(benchmark, options);
+        
+        const dpr = window.devicePixelRatio || 1;
+        this.canvasDPR = Math.min(Math.floor(dpr), 2); // Just use 1 or 2.
+        
+        const canvasClientRect = this._canvasObject.getBoundingClientRect();
 
-        this.canvasSize = new Size(this._canvasObject.width, this._canvasObject.height);
+        this._canvasObject.width = canvasClientRect.width * dpr;
+        this._canvasObject.height = canvasClientRect.height * dpr;
+
+        this.canvasSize = new Size(this._canvasObject.width / this.canvasDPR, this._canvasObject.height / this.canvasDPR);
         this._complexity = 0;
 
         this.#startLoadingData(benchmark);
 
-        this.context = this.element.getContext("2d");
+        this.context = this._canvasObject.getContext("2d");
+        this.context.scale(this.canvasDPR, this.canvasDPR);
     }
 
     tune(count)
@@ -470,7 +479,7 @@ class RadialChartStage extends Stage {
 
         const centerPoint = new Point(this.canvasSize.width / 2, this.canvasSize.height / 2);
         
-        const outerRadius = this.canvasSize.height * 0.48;
+        const outerRadius = this.canvasSize.height * 0.45;
         const annulusRadius = outerRadius / numCharts;
         
         for (let i = numCharts; i > 0; --i) {
@@ -494,7 +503,7 @@ class RadialChartStage extends Stage {
     animate()
     {
         const context = this.context;
-        context.clearRect(0, 0, this.size.x, this.size.y);
+        context.clearRect(0, 0, this.canvasSize.width, this.canvasSize.height);
         
         for (const chart of this.charts) {
             chart.draw(context);
@@ -510,7 +519,7 @@ class RadialChartStage extends Stage {
 class RadialChartBenchmark extends Benchmark {
     constructor(options)
     {
-        const canvas = document.getElementById('stage');
+        const canvas = document.getElementById('stage-canvas');
         super(new RadialChartStage(canvas), options);
     }
 
