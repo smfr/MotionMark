@@ -460,6 +460,10 @@ Suites.push(new Suite("Basic canvas path suite",
 Suites.push(new Suite("Dev suite",
     [
         {
+            url: "dev/fractal-boxes.html",
+            name: "Fractal Boxes"
+        },
+        {
             url: "dev/radial-chart.html",
             name: "Radial Chart"
         }
