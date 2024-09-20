@@ -28,21 +28,83 @@
     <meta charset="utf-8">
     <link rel="stylesheet" type="text/css" href="../resources/stage.css">
     <style>
+
+        @property --image-scale {
+          syntax: "<number>";
+          inherits: true;
+          initial-value: 1;
+        }
+
+        #container {
+            position: relative;
+            --margin: 10px;
+            height: calc(100% - calc(2 * var(--margin)));
+            width: calc(100% - calc(2 * var(--margin)));
+            margin: var(--margin);
+        }
+
         .box {
             position: absolute;
-            border: 1px solid gray;
-            border-radius: 10px;
-            box-shadow: 0 0 10px black inset;
+            border-radius: 20px;
+            box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
             box-sizing: border-box;
-            padding: 10px;
-            text-align: center;
             font-size: 10pt;
+            overflow: clip;
+            z-index: 0;
         }
         
+        .badge {
+            position: absolute;
+            margin: 10px;
+            height: 40px;
+            width: 40px;
+            border-radius: 100%;
+            overflow: hidden;
+            border: 4px solid blue;            
+            filter: drop-shadow(rgba(0, 0, 0, 0.62) 0px 0px 1px);
+            z-index: 1;
+        }
+        
+        .badge > img {
+            background-color: white;
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+        }
+
+        .box > img {
+            position: absolute;
+            top: 0;
+            height: 100%;
+            width: 100%;
+            object-fit: cover;
+            scale: var(--image-scale);
+        }
+        
+        .box > .overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            text-align: center;
+            box-sizing: border-box;
+            padding: 5px;
+            width: 100%;
+            height: 100%;
+            color: white;
+            --gradient-height: 2.5em;
+            --overlay-color: rgba(0, 0, 0, 0.25);
+            background-image: linear-gradient(to bottom, var(--overlay-color) 0, var(--overlay-color) calc(var(--gradient-height) - 5px), transparent var(--gradient-height));
+        }
+        
+        .overlay span {
+            text-shadow: 0 0 2px rgba(0, 0, 0, 0.62);
+        }
     </style>
 </head>
 <body>
-    <div id="stage" class="horizontal tree-node"></div>
+    <div id="stage">
+        <div id="container"></div>
+    </div>
     <script src="../../resources/strings.js"></script>
     <script src="../../resources/extensions.js"></script>
     <script src="../../resources/statistics.js"></script>

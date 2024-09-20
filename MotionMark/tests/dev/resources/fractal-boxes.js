@@ -46,6 +46,31 @@ class MathHelpers {
     }
 }
 
+const textLabels = [
+    { value: 'design' },
+    { value: 'σχέδιο' },
+    { value: '设计' },
+    { value: 'дизайн' },
+    { value: 'تصميم', rtl: true },
+    { value: '디자인' },
+    { value: 'conception' },
+    { value: 'デザイン' },
+    { value: 'עיצוב', rtl: true },
+    { value: 'diseño' },
+];
+
+const fillImages = [
+  'robert-bye-36K5WckeU3o-unsplash.jpg',
+  'andrey-andreyev-dh8ONmfQyQQ-unsplash.jpg',
+  'fabian-burghardt-A81818EFqGQ-unsplash.jpg',
+  'jonatan-pie-7FfG8zcPcXU-unsplash.jpg',
+  'josh-reid-meOFNlRbHmY-unsplash.jpg',
+  'khamkeo-rBRZLPVLQg0-unsplash.jpg',
+  'luke-stackpoole-eWqOgJ-lfiI-unsplash.jpg',
+  'matt-palmer-gK1s6P92EIE-unsplash.jpg',
+  'redcharlie-O7zkyNkQ1lM-unsplash.jpg',
+  'roan-lavery-hUj3aAg0W3Q-unsplash.jpg',
+];
 
 class Rect {
     constructor(position, size)
@@ -83,32 +108,52 @@ class Size {
     }
 }
 
-const testData = [
-    { value: 6, label: "6 value" },
-    { value: 6, label: "6 value" },
-    { value: 4, label: "4 value" },
-    { value: 3, label: "3 value" },
-    { value: 2, label: "2 value" },
-    { value: 1, label: "1 value" },
-    { value: 6, label: "6 value" },
-    { value: 6, label: "6 value" },
-    { value: 4, label: "4 value" },
-    { value: 3, label: "3 value" },
-    { value: 2, label: "2 value" },
-    { value: 1, label: "1 value" },
-    { value: 6, label: "6 value" },
-    { value: 6, label: "6 value" },
-    { value: 4, label: "4 value" },
-    { value: 3, label: "3 value" },
-    { value: 2, label: "2 value" },
-    { value: 1, label: "1 value" },
-    { value: 6, label: "6 value" },
-    { value: 6, label: "6 value" },
-    { value: 4, label: "4 value" },
-    { value: 3, label: "3 value" },
-    { value: 2, label: "2 value" },
-    { value: 1, label: "1 value" },
-];
+// FIXME: Move to shared code.
+class Animator {
+    constructor(min, max)
+    {
+        this.min = min;
+        this.max = max;
+    }
+    
+    valueForTime(timestampMS)
+    {
+        return this.min;
+    }
+}
+
+class SinusoidalAnimator extends Animator {
+    constructor(min, max, wavelengthMS, phaseMS)
+    {
+        super(min, max);
+        this.wavelengthMS = wavelengthMS;
+        this.phaseMS = phaseMS;
+    }
+
+    valueForTime(timestampMS)
+    {
+        // Scale between 0 and 2PI
+        const offset = 2 * Math.PI * ((timestampMS + this.phaseMS) % this.wavelengthMS) / this.wavelengthMS;
+        const value = Math.sin(offset);
+        return this.min + (this.max - this.min) * (0.5 + value / 2);
+    }
+}
+
+class RampAnimator extends Animator {
+    constructor(min, max, durationMS, phaseMS, alternate)
+    {
+        super(min, max);
+        this.durationMS = durationMS;
+        this.phaseMS = phaseMS;
+    }
+
+    valueForTime(timestampMS)
+    {
+        const offset = ((timestampMS + this.phaseMS) % this.durationMS) / this.durationMS;
+        return Utilities.lerp(offset, this.min, this.max);
+    }
+}
+
 
 Array.prototype.max = function()
 {
@@ -126,15 +171,18 @@ Array.prototype.sum = function()
 };
 
 class BoxItem {
-    constructor(value, label)
+    constructor(mainImage)
     {
-        this.value = value;
-        this.label = label;
+        this.value = Stage.random(0.1, 1);
+        
+        const labelIndex = Math.floor(Stage.random(0, textLabels.length));
+        this.label = textLabels[labelIndex].value;
+        this.isRTL = textLabels[labelIndex].rtl || false;
+        
+        this.mainImage = mainImage.cloneNode();
         this.element = undefined;
     
-        this.hueOffset = Stage.random(0, 1);
-        this.saturation = Stage.random(0.2, 0.6);
-        this.lightness = Stage.random(0.5, 0.7);
+        this.animator = new RampAnimator(1, 1.2, 5000, Stage.random(0, 1));
     }
     
     ensureElement()
@@ -142,27 +190,42 @@ class BoxItem {
         if (!this.element) {
             this.element = document.createElement('div');
             this.element.className = 'box';
-            this.element.textContent = this.label;
+            if (this.isRTL)
+                this.element.classList.add('rtl');
+                
+            const badgeContainer = document.createElement('div');
+            badgeContainer.className = 'badge';
+            const badgeImage = document.createElement('img');
+            badgeImage.src = '../core/resources/debugger100.png';
+            badgeContainer.appendChild(badgeImage);
+            this.element.appendChild(badgeContainer);
+            this.element.appendChild(this.mainImage);
+
+            const childBox = document.createElement('div');
+            childBox.className = 'overlay';
+            const childSpan = document.createElement('span');
+            childSpan.textContent = this.label;
+
+            childBox.appendChild(childSpan);
+            this.element.appendChild(childBox);
         }
         
         return this.element;
     }
     
-    animate(nowData)
+    animate(timestamp)
     {
-        const colorCycleLengthMS = 1200;
-
-        this.element.style.backgroundImage = `linear-gradient(to bottom right, ${MathHelpers.rotatingColor(this.hueOffset, colorCycleLengthMS, this.saturation, this.lightness)},
-            ${MathHelpers.rotatingColor(this.hueOffset + 0.2, colorCycleLengthMS, this.saturation, this.lightness)})`;
+        const scale =  this.animator.valueForTime(timestamp);
+        this.element.style.setProperty('--image-scale', scale);
     }
-    
+
     applyStyle(data)
     {
         const edgeInset = 4;
-        this.element.style.left = `${data.x + edgeInset}px`;
-        this.element.style.top = `${data.y + edgeInset}px`;
-        this.element.style.width = `${Math.max(data.width - 2 * edgeInset, 0)}px`;
-        this.element.style.height = `${Math.max(data.height - 2 * edgeInset, 0)}px`;        
+        this.element.style.left = `${data.x.toFixed(2) + edgeInset}px`;
+        this.element.style.top = `${data.y.toFixed(2) + edgeInset}px`;
+        this.element.style.width = `${Math.max(data.width - 2 * edgeInset, 0).toFixed(2)}px`;
+        this.element.style.height = `${Math.max(data.height - 2 * edgeInset, 0).toFixed(2)}px`;        
     }
 }
 
@@ -277,7 +340,8 @@ class TreeMapLayout {
     #layoutLastRow(rowValues, remainingItems, width, layoutState)
     {
         const isVertical = TreeMapLayout.#getSmallerDimension(layoutState.remainingSize).vertical;
-        this.#layoutRow(rowValues, width, isVertical, layoutState);
+        if (rowValues.length)
+            this.#layoutRow(rowValues, width, isVertical, layoutState);
         this.#layoutRow(remainingItems, width, isVertical, layoutState);
     }
 
@@ -294,7 +358,11 @@ class FractalBoxesController {
     constructor(stage)
     {
         this.stage = stage;
-        const stageClientRect = this.stage.element.getBoundingClientRect();
+
+        this.container = document.getElementById('container');
+        this.container.innerText = '';
+
+        const stageClientRect = this.container.getBoundingClientRect();
         this.stageSize = new Size(stageClientRect.width, stageClientRect.height);
         this.nodeCount = 1;
 
@@ -309,7 +377,7 @@ class FractalBoxesController {
             this.items.length = complexity;
           
             for (let i = this._complexity; i < this.items.length; ++i)
-                this.items[i] = new BoxItem(Stage.random(0.1, 1), 'here');
+                this.items[i] = this.#createBox(i);
         } else {
             for (let i = complexity; i < this.items.length; ++i)
                 this.items[i].element.remove();
@@ -330,19 +398,22 @@ class FractalBoxesController {
             const element = item.ensureElement();
             item.applyStyle(data);
             
-            element.textContent = this.treeMap.data[i].toFixed(2);
-            
             if (!element.parentElement)
-                this.stage.element.appendChild(element);
+                this.container.appendChild(element);
             ++i;
         }
     }
     
+    #createBox(boxIndex)
+    {
+        return new BoxItem(this.stage.images[boxIndex % this.stage.images.length]);
+    }
+    
     animate()
     {
-        const nowData = new Date;
+        const timestamp = Date.now();
         for (const boxItem of this.items)
-            boxItem.animate(nowData);
+            boxItem.animate(timestamp);
     }
 }
 
@@ -358,14 +429,37 @@ class FractalBoxesStage extends Stage {
     initialize(benchmark, options)
     {
         super.initialize(benchmark, options);
-        
-        this.element.innerText = '';
-        const stageClientRect = this.element.getBoundingClientRect();
-        this.stageSize = new Size(stageClientRect.width, stageClientRect.height);
-        
         this.controller = new FractalBoxesController(this);
+        
+        this.images = [];
+        this.#startLoadingData(benchmark)
     }
 
+    #startLoadingData(benchmark)
+    {
+        setTimeout(async () => {
+            await this.#loadImages();
+            benchmark.readyPromise.resolve();
+        }, 0);
+    }
+    
+    async #loadImages()
+    {
+        const promises = [];
+        const imagePrefix = 'resources/images/';
+        for (const imageURL of fillImages) {
+            const loadingPromise = new Promise(resolve => {
+                const image = new Image();
+                image.onload = resolve;
+                image.src = imagePrefix + imageURL;
+                this.images.push(image);
+            });
+            promises.push(loadingPromise);
+        }
+        
+        await Promise.all(promises);
+    }
+    
     tune(count)
     {
         if (count === 0)
@@ -395,6 +489,11 @@ class FractalBoxesBenchmark extends Benchmark {
         super(new FractalBoxesStage(stage), options);
     }
 
+    waitUntilReady()
+    {
+        this.readyPromise = new SimplePromise;
+        return this.readyPromise;
+    }
 }
 
 window.benchmarkClass = FractalBoxesBenchmark;
@@ -402,7 +501,7 @@ window.benchmarkClass = FractalBoxesBenchmark;
 class FakeController {
     constructor()
     {
-        this.initialComplexity = 50;
+        this.initialComplexity = 10;
         this.startTime = new Date;
     }
 
@@ -425,11 +524,11 @@ class FakeController {
 
 // Testing
 window.addEventListener('load', () => {
-    if (window.parentWindow)
+    if (!(window === window.parent))
         return;
 
     var benchmark = new window.benchmarkClass({ });
-    benchmark._controller = new FakeController();
+    benchmark._controller = new FakeController(benchmark);
 
     benchmark.run().then(function(testData) {
 
