@@ -466,6 +466,10 @@ Suites.push(new Suite("Dev suite",
         {
             url: "dev/radial-chart.html",
             name: "Radial Chart"
+        },
+        {
+            url: "dev/svg-chart.html",
+            name: "Tree Of Life"
         }
     ]
 ));

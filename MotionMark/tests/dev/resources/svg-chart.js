@@ -35,10 +35,56 @@ class Size {
 
 
 
-class TreeOfLifeData {
-    constructor(jsonData)
+class TreeOfLifeDataSet {
+    constructor(jsonData, maxNodes = 100)
     {
+        this.jsonData = jsonData;
+        this.nodeList = this.jsonData['nodes'];
+        this.links = this.jsonData['links'];
+        this._maxNodes = maxNodes;
+
+        this.nodes = { };
+        for (const node of this.nodeList)
+            this.nodes[node.id] = node;
+
+        this.#buildTree();
+    }
+    
+    set maxNodes(maxNodes)
+    {
+        this._maxNodes = maxNodes;
+
+        for (const node of this.nodeList)
+            node.children = [];
+
+        this.#buildTree();
+    }
+    
+    #buildTree()
+    {
+        console.log(`buildTree ${this._maxNodes}`)
+
+        const rootNodeID = 1;
+        this.rootNode = this.nodes[rootNodeID];
+
+        let nodeCount = 0;
         
+        for (const link of this.links) {
+            const sourceNode = this.nodes[link.source];
+            const targetNode = this.nodes[link.target];
+            if (!targetNode)
+                continue;
+            
+            if (!sourceNode.children)
+                sourceNode.children = [];
+            
+            sourceNode.children.push(targetNode);
+            
+            if (++nodeCount > this._maxNodes)
+                break;
+        }
+        
+        // FIXME: Need to filter nodes that have no leaves.
     }
 }
 
@@ -61,6 +107,7 @@ class ChartController {
     {
         console.log(`setComplexity ${complexity}`)
         this._complexity = complexity;
+        this.stage.dataSet.maxNodes = this._complexity;
         this.#layoutChart();
     }
     
@@ -79,7 +126,7 @@ class ChartController {
             .separation((a, b) => (a.parent == b.parent ? 1 : 2) / a.depth);
         
         // Sort the tree and apply the layout.
-        this.root = this.tree(d3.hierarchy(this.stage.data)
+        this.root = this.tree(d3.hierarchy(this.stage.dataSet.rootNode)
             .sort((a, b) => d3.ascending(a.data.name, b.data.name)));
         
         // Creates the SVG container.
@@ -88,18 +135,16 @@ class ChartController {
             .attr("height", height)
             .attr("viewBox", [-cx, -cy, width, height]);
 
-        console.log(this.root.links());
-
         // Append links.
         this.svg.append("g")
             .attr("class", "links")
             .attr("fill", "none")
-            .attr("stroke", "#555")
             .attr("stroke-opacity", 0.4)
             .attr("stroke-width", 1.5)
             .selectAll()
             .data(this.root.links())
             .join("path")
+                .attr("stroke", d => d.target.children ? "red" : "blue")
                 .attr("d", d3.linkRadial()
                     .angle(d => d.x)
                     .radius(d => d.y));
@@ -111,7 +156,7 @@ class ChartController {
             .data(this.root.descendants())
             .join("circle")
                 .attr("transform", d => `rotate(${d.x * 180 / Math.PI - 90}) translate(${d.y},0)`)
-                .attr("fill", d => d.children ? "#555" : "#999")
+                .attr("fill", d => d.children ? "red" : "blue")
                 .attr("r", 2.5)
                 .attr("class", "target");
         
@@ -145,7 +190,7 @@ class ChartController {
             .size([2 * Math.PI, this.radius])
             .separation((a, b) => (a.parent == b.parent ? 1 : 2) / a.depth);
 
-        this.root = this.tree(d3.hierarchy(this.stage.data)
+        this.root = this.tree(d3.hierarchy(this.stage.dataSet.rootNode)
             .sort((a, b) => d3.ascending(a.data.name, b.data.name)));
 
         d3.selectAll("g.links")
@@ -187,7 +232,7 @@ class SVGChartStage extends Stage {
         
         const chartSize = new Size(stageClientRect.width, stageClientRect.height);
         this.controller = new ChartController(this, chartSize);
-        
+
         this.#startLoadingData(benchmark);
     }
 
@@ -202,7 +247,7 @@ class SVGChartStage extends Stage {
 
     async #loadDataJSON()
     {
-        const url = "resources/flare-2.json";
+        const url = "resources/treeoflife.json";
         const response = await fetch(url);
         if (!response.ok) {
             const errorString = `Failed to load data source ${url} with error ${response.status}`
@@ -210,7 +255,8 @@ class SVGChartStage extends Stage {
             throw errorString;
         }
     
-        this.data = await response.json();
+        this.jsonData = await response.json();
+        this.dataSet = new TreeOfLifeDataSet(this.jsonData);
     }
     
     async #loadImages()
@@ -224,14 +270,14 @@ class SVGChartStage extends Stage {
 
         this._complexity += count;
 
-        // console.log(`tune ${count} complexity ${this._complexity}`);
+        console.log(`tune ${count} complexity ${this._complexity}`);
         this.controller.complexity = this._complexity;
     }
 
     animate()
     {
         const timestamp = Date.now();
-        this.controller.animate(timestamp);
+        // this.controller.animate(timestamp);
     }
 
     complexity()
@@ -259,7 +305,7 @@ window.benchmarkClass = SVGChartBenchmark;
 class FakeController {
     constructor()
     {
-        this.initialComplexity = 10;
+        this.initialComplexity = 500;
         this.startTime = new Date;
     }
 
