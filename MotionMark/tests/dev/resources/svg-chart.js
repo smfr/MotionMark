@@ -224,25 +224,22 @@ class SVGChartStage extends Stage {
         this._complexity = 0;
     }
 
-    initialize(benchmark, options)
+    async initialize(benchmark, options)
     {
-        super.initialize(benchmark, options);
+        await super.initialize(benchmark, options);
         
         const stageClientRect = this.element.getBoundingClientRect();
         
         const chartSize = new Size(stageClientRect.width, stageClientRect.height);
         this.controller = new ChartController(this, chartSize);
 
-        this.#startLoadingData(benchmark);
+        await this.#loadData(benchmark);
     }
 
-    #startLoadingData(benchmark)
+    async #loadData(benchmark)
     {
-        setTimeout(async () => {
-            await this.#loadDataJSON();
-            await this.#loadImages();
-            benchmark.readyPromise.resolve();
-        }, 0);
+        await this.#loadDataJSON();
+        await this.#loadImages();
     }
 
     async #loadDataJSON()
@@ -277,7 +274,7 @@ class SVGChartStage extends Stage {
     animate()
     {
         const timestamp = Date.now();
-        // this.controller.animate(timestamp);
+        this.controller.animate(timestamp);
     }
 
     complexity()
@@ -291,12 +288,6 @@ class SVGChartBenchmark extends Benchmark {
     {
         const stage = document.getElementById('stage');
         super(new SVGChartStage(stage), options);
-    }
-
-    waitUntilReady()
-    {
-        this.readyPromise = new SimplePromise;
-        return this.readyPromise;
     }
 }
 
@@ -312,7 +303,7 @@ class FakeController {
     shouldStop()
     {
         const now = new Date();
-        return (now - this.startTime) > 5000;
+        return (now - this.startTime) > 1000;
     }
     
     update(timestamp, stage)
@@ -327,13 +318,14 @@ class FakeController {
 }
 
 // Testing
-window.addEventListener('load', () => {
+window.addEventListener('load', async () => {
     if (!(window === window.parent))
         return;
 
     var benchmark = new window.benchmarkClass({ });
     benchmark._controller = new FakeController(benchmark);
-
+    
+    await benchmark.initialize({ });
     benchmark.run().then(function(testData) {
 
     });
