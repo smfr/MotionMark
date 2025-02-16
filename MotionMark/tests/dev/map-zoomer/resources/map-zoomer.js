@@ -428,7 +428,7 @@ class ZoomableMap {
         }, { }, this.trackContainer);
         
         const group = Utilities.createSVGElement('g', { class: 'path-group' }, { }, svgElement);
-        const polyline = Utilities.createSVGElement('polyline', { fill: 'none', stroke: 'black' }, { }, group);
+        const polyline = Utilities.createSVGElement('polyline', { }, { }, group);
 
         polyline.setAttribute('points', this.stage.trackPointString);
     }

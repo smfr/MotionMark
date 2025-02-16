@@ -37,7 +37,7 @@
         @property --arrow-size {
           syntax: "<length>";
           inherits: true;
-          initial-value: 15px;
+          initial-value: 8px;
         }
 
         #stage-canvas {
@@ -110,9 +110,10 @@
         
         .map-container .label {
             position: absolute;
-            left: 10px;
-            bottom: 10px;
-            font-size: smaller;
+            left: 4px;
+            bottom: 4px;
+            color: #666;
+            font-size: 11px;
         }
 
         .map-controls {
@@ -148,7 +149,15 @@
             position: absolute;
             top: 0;
             left: 0;
-            outline: 0.5px solid black;
+        }
+        
+        .path-group > polyline {
+            vector-effect: non-scaling-stroke;
+            fill: none;
+            stroke-width: 4;
+            stroke: rgba(255, 0, 0, 0.8);
+            stroke-linejoin: round;
+            stroke-linecap: round;
         }
         
         a.save-route {
@@ -189,36 +198,33 @@
             position: absolute;
             height: 0px;
             width: 0px;
+            /* This makes it too slow in Safari */
+            filter: drop-shadow(1px 2px 2px rgba(0, 0, 0, 0.3));
         }
 
         .photo-container {
             position: absolute;
-            height: var(--photo-size);
+            height: calc(var(--photo-size) + var(--arrow-size));
             width: var(--photo-size);
-            top: calc(-1 * (var(--photo-size) + var(--arrow-size) / 2));
+            top: calc(-1 * (var(--photo-size) + var(--arrow-size)));
             left: calc(var(--photo-size) / -2);
             background-color: white;
             box-sizing: border-box;
             padding: 4px;
-        }
-        
-        .photo-container::after {
-            content: '';
-            display: block;
-            position: absolute;
-            top: var(--photo-size);
-            --border-size: calc(var(--arrow-size) / 2);
-            left: calc((var(--photo-size) - var(--arrow-size)) / 2);
-            width: 0;
-            height: 0;
-            border-left: var(--border-size) solid transparent;
-            border-right: var(--border-size) solid transparent;
-            border-top: var(--border-size) solid white;
+            --arrow-leadin: calc((var(--photo-size) - 2 * var(--arrow-size)) / 2);
+            clip-path: polygon(
+                0 0,
+                var(--photo-size) 0,
+                var(--photo-size) var(--photo-size),
+                calc(var(--photo-size) - var(--arrow-leadin)) var(--photo-size),
+                calc(var(--photo-size) / 2) calc(var(--photo-size) + var(--arrow-size)),
+                var(--arrow-leadin) var(--photo-size),
+                0 var(--photo-size));
         }
 
         .photo-container > img {
-            height: 100%;
             width: 100%;
+            aspect-ratio: 1;
             object-fit: cover;
         }
         
