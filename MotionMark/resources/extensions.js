@@ -247,6 +247,11 @@ class Point {
         this.y = y;
     }
 
+    clone()
+    {
+        return new Point(this.x, this.y);
+    }
+
     // Used when the point object is used as a size object.
     get width()
     {
@@ -290,6 +295,21 @@ class Point {
             return new Point(this.x * other, this.y * other);
         return new Point(this.x * other.x, this.y * other.y);
     }
+    
+    min(other)
+    {
+        return new Point(Math.min(this.x, other.x), Math.min(this.y, other.y));
+    }
+
+    max(other)
+    {
+        return new Point(Math.max(this.x, other.x), Math.max(this.y, other.y));
+    }
+
+    scale(factor)
+    {
+        return new Point(this.x * factor, this.y * factor);
+    }
 
     move(angle, velocity, timeDelta)
     {
@@ -298,12 +318,12 @@ class Point {
 
     length()
     {
-        return Math.sqrt(this.x * this.x + this.y * this.y);
+        return Math.hypot(this.x, this.y);
     }
 
     normalize()
     {
-        var l = Math.sqrt(this.x * this.x + this.y * this.y);
+        const l = this.length();
         this.x /= l;
         this.y /= l;
         return this;
