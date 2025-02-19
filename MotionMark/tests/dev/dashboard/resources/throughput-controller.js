@@ -52,9 +52,9 @@ class ThroughputController extends ChartController {
     {
         const containerRect = this.containerElement.getBoundingClientRect();
         
-        const marginTop = 20;
+        const marginTop = 30;
         const marginRight = 20;
-        const marginBottom = 30;
+        const marginBottom = 20;
         const marginLeft = 30;
 
         const width = containerRect.width - marginLeft - marginRight;
@@ -93,13 +93,7 @@ class ThroughputController extends ChartController {
             .call(d3.axisLeft(this.yScale).ticks(height / 40))
             .call(g => g.selectAll(".tick line").clone()
                 .attr("x2", width - marginLeft - marginRight)
-                .attr("stroke-opacity", 0.1))
-            .call(g => g.append("text")
-                .attr("x", 0)
-                .attr("y", 10)
-                .attr("fill", "currentColor")
-                .attr("text-anchor", "start")
-                .text("Traffic"));
+                .attr("stroke-opacity", 0.1));
 
         this.chartNode?.remove();
         this.chartNode = svg.node();

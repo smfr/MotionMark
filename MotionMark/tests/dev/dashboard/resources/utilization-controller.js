@@ -33,7 +33,7 @@ class UtilizationController extends ChartController {
     async initialize()
     {
         await super.initialize();
-        this.generator = d3.randomExponential(100);
+        this.generator = d3.randomLogNormal(0, 1);
     }
 
     set complexity(complexity)
@@ -46,11 +46,12 @@ class UtilizationController extends ChartController {
     
     #generateData(complexity)
     {
-
-        const dataLength = complexity;
         const divisor = Math.max(Math.floor(complexity / 10), 1);
 
-        console.log(`utilization complexity ${complexity} divisor ${divisor}`);
+        // This means our work is not quite proportional to complexity.
+        const dataLength = divisor * Math.ceil(complexity / divisor);
+
+        // console.log(`utilization complexity ${complexity} divisor ${divisor} dataLength ${dataLength}`);
 
         this.data = Array.from({ length: dataLength }, (element, i) => {
             return { date: `${Math.floor(i / divisor)}`, process: `process ${i % divisor}`, usage: this.generator() };
@@ -60,9 +61,12 @@ class UtilizationController extends ChartController {
     #buildChart(container)
     {
         this.chartNode?.remove();
+        
+        const containerBounds = container.getBoundingClientRect();
 
         // Specify the chart’s dimensions (except for the height).
-        const width = 200;
+        const width = containerBounds.width;
+        const availableHeight = containerBounds.height;
         const marginTop = 30;
         const marginRight = 10;
         const marginBottom = 0;
@@ -71,11 +75,11 @@ class UtilizationController extends ChartController {
         // Determine the series that need to be stacked.
         this.series = d3.stack()
             .keys(d3.union(this.data.map(d => d.process))) // distinct series keys, in input order
-            .value(([, D], key) => { const value = D.get(key); return value ? value.usage : 0 }) // get value for each series key and stack
+            .value(([, D], key) => { const value = D.get(key); return value.usage }) // get value for each series key and stack
           (d3.index(this.data, d => d.date, d => d.process)); // group by stack then series key
 
         // Compute the height from the number of stacks.
-        const height = this.series[0].length * 25 + marginTop + marginBottom;
+        const height = (availableHeight - marginTop - marginBottom);
 
         // Prepare the scales for positional and color encodings.
         this.xScale = d3.scaleLinear()
@@ -84,7 +88,7 @@ class UtilizationController extends ChartController {
 
         this.yScale = d3.scaleBand()
             .domain(d3.groupSort(this.data, D => -d3.sum(D, d => d.usage), d => d.date))
-            .range([marginTop, height - marginBottom])
+            .range([marginTop, height])
             .padding(0.08);
 
         const color = d3.scaleOrdinal(d3.schemeObservable10);
@@ -117,7 +121,7 @@ class UtilizationController extends ChartController {
             .attr("height", this.yScale.bandwidth())
             .attr("width", d => this.xScale(d[1]) - this.xScale(d[0]))
           .append("title")
-            .text(d => `${d.data[0]} ${d.key}\n${formatValue(d.data[1].get(d.key)?.usage)}`);
+            .text(d => `${d.data[0]} ${d.key}\n${formatValue(d.data[1].get(d.key).usage)}`);
 
         // Append the horizontal axis.
         svg.append("g")
@@ -137,11 +141,11 @@ class UtilizationController extends ChartController {
 
     animate(timestamp)
     {
-        for (const item of this.data) {
-            item.usage = this.generator();
-        }
+        const normalGenerator = d3.randomNormal(0, 0.1);
+        for (const item of this.data)
+            item.usage = Math.max(item.usage + normalGenerator(), 0);
 
-      this.series = d3.stack()
+        this.series = d3.stack()
           .keys(d3.union(this.data.map(d => d.process))) // distinct series keys, in input order
           .value(([, D], key) => D.get(key)?.usage) // get value for each series key and stack
         (d3.index(this.data, d => d.date, d => d.process)); // group by stack then series key

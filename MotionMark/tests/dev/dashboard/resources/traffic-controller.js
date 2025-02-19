@@ -62,7 +62,7 @@ class TrafficController extends ChartController {
             return `${alphabet[generator()]}${alphabet[generator()]}${alphabet[generator()]}`;
         }
 
-        const dataLength = complexity;
+        const dataLength = complexity / 2; // Because there are two charts.
         this.data = Array.from({ length: dataLength }, (element, i) => {
             return { name: randomDomainComponent(), value: this.generator() };
         });

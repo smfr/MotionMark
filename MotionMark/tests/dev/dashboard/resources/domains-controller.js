@@ -36,7 +36,7 @@ class DomainsController extends ChartController {
     {
         await super.initialize();
         
-        const generator = d3.randomExponential(100);
+        this.valueGenerator = d3.randomLogNormal(0, 1);
         
     }
 
@@ -50,12 +50,6 @@ class DomainsController extends ChartController {
     
     #generateData(complexity)
     {
-        const meanBreadth = 4;
-        const maxDepth = 3;
-
-        const rootNodeCount = Math.max(complexity, 7);
-        const meanDepthCount = Math.min(Math.pow(complexity, 1 / meanBreadth), 1);
-
         this.leafNodes = [];
         
         // FIXME: Share.
@@ -66,40 +60,55 @@ class DomainsController extends ChartController {
             return `${alphabet[generator()]}${alphabet[generator()]}${alphabet[generator()]}`;
         };
 
-        const buildChildren = (node, depth, maxDepth) => {
-            const numChildren = Math.max(Math.floor(d3.randomNormal(meanBreadth, meanBreadth / 4)()), 1);
-
-            for (let i = 0; i < numChildren; ++i) {
-                const currNode = {
-                    name: randomDomainComponent()
-                };
-
-                const depthSample = d3.randomPoisson(maxDepth)();
-                if (depth < depthSample) {
-                    currNode.children = [];
-                    buildChildren(currNode, depth + 1, maxDepth);
-                } else {
-                    currNode.value = d3.randomLogNormal(0, 1)();
-                    this.leafNodes.push(currNode);
-                }
-
-                node.children.push(currNode);
-            }
-        }
+        const maxBreadth = 10;
+        const maxDepth = 4;
 
         this.data = {
             name: 'com',
             children: []
         };
         
-        buildChildren(this.data, 0, 3);
+        const leafNodes = new Set();
         
-        console.log(`complexity ${complexity} leaf nodes count ${this.leafNodes.length}`);
+        const insertNode = (node, path) => {
+            if (path.length === 0)
+                return;
+
+            const nodeIndex = path.shift();
+            
+            if (nodeIndex >= node.children.length) {
+                const newNode = {
+                    name: randomDomainComponent(),
+                    value: this.valueGenerator(),
+                    children: []
+                };
+                
+                if (node.children.length === 0)
+                    leafNodes.delete(node);
+                
+                node.children.push(newNode);
+                leafNodes.add(newNode);
+                return;
+            }
+
+            const childNode = node.children[nodeIndex];
+            insertNode(childNode, path);
+        };
+
+        const pathGenerator = d3.randomInt(0, maxBreadth);
+        for (let i = 0; i < complexity; ++i) {
+            const path = [];
+            for (let p = 0; p < maxDepth; ++p)
+                path.push(pathGenerator());
+
+            insertNode(this.data, path);
+        }
+        
+        this.leafNodes = Array.from(leafNodes);
     }
 
     #buildChart(container)
     {
-        return;
         this.chartNode?.remove();
 
         // Specify the chart’s colors and approximate radius (it will be adjusted at the end).
@@ -173,7 +182,7 @@ class DomainsController extends ChartController {
         const generator = d3.randomInt(this.leafNodes.length);
         for (let i = 0; i < numLeafMutations; ++i) {
             const targetNode = this.leafNodes[generator()];
-            targetNode.value = d3.randomLogNormal(0, 1)();
+            targetNode.value = this.valueGenerator();
         }
 
         // Incremental chart updates are hard. Let's rebuild the whole thing like a developer would probably do.

@@ -150,7 +150,7 @@ window.benchmarkClass = DashboardBenchmark;
 class FakeController {
     constructor()
     {
-        this.initialComplexity = 200;
+        this.initialComplexity = 1999;
         this.startTime = new Date;
     }
 
