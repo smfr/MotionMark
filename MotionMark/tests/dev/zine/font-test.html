@@ -39,14 +39,14 @@
         @font-face {
             font-family: "OstrichSans";
             src: url("resources/fonts/OstrichSans/OstrichSans-Medium.otf") format("opentype");
-            font-weight: normal; /* 400 */
+            font-weight: normal;
             font-style: normal;
         }
 
         @font-face {
             font-family: "OstrichSans";
             src: url("resources/fonts/OstrichSans/OstrichSans-Bold.otf") format("opentype");
-            font-weight: bold; /* 700 */
+            font-weight: bold;
             font-style: normal;
         }
 
@@ -71,11 +71,29 @@
             font-weight: 800;
             font-style: normal;
         }
+        
+        @font-face {
+            font-family: "League Spartan";
+            src: url("resources/fonts/League Spartan/LeagueSpartan-VF.woff2") format("woff2");
+        }
+
+        @font-face {
+            font-family: "League Spartan Medium";
+            src: url("resources/fonts/League Spartan/LeagueSpartan-Medium.woff2") format("woff2");
+            font-weight: normal;
+            font-style: normal;
+        }
+
+
+
 
         div {
             margin: 20px;
-            font-size: 64pt;
-            font-family: "OstrichSans";
+            font-size: 24pt;
+            font-family: "League Spartan Medium";
+            
+            text-rendering: optimizeLegibility;
+            font-feature-settings: 'frac' on, 'frac' off;
         }
         
         div.rounded {
@@ -86,17 +104,15 @@
 </head>
 <body>
 
-<div style="font-weight: 100">OstrichSans 100</div>
-<div style="font-weight: 200">OstrichSans 200</div>
-<div style="font-weight: 300">OstrichSans 300</div>
-<div style="font-weight: 400">OstrichSans 400</div>
-<div style="font-weight: 500">OstrichSans 500</div>
-<div style="font-weight: 600">OstrichSans 600</div>
-<div style="font-weight: 700">OstrichSans 700</div>
-<div style="font-weight: 800">OstrichSans 800</div>
-<div style="font-weight: 900">OstrichSans 900</div>
-<div>&nbsp;</div>
-<div class="rounded" style="font-weight: 900">OstrichSansRounded 900</div>
+<div style="font-weight: 100">Flip Flop League Spartan 1/4 100</div>
+<div style="font-weight: 200">Flip Flop League Spartan 1/4 200</div>
+<div style="font-weight: 300">Flip Flop League Spartan 1/4 300</div>
+<div style="font-weight: 400">Flip Flop League Spartan 1/4 400</div>
+<div style="font-weight: 500">Flip Flop League Spartan 1/4 500</div>
+<div style="font-weight: 600">Flip Flop League Spartan 1/4 600</div>
+<div style="font-weight: 700">Flip Flop League Spartan 1/4 700</div>
+<div style="font-weight: 800">Flip Flop League Spartan 1/4 800</div>
+<div style="font-weight: 900">Flip Flop League Spartan 1/4 900</div>
 
 </body>
 </html>

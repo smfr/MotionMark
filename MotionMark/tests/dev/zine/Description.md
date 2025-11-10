@@ -1,10 +1,9 @@
-# Newsletter HTML Test
+# Zine HTML Test
 
 Goals
 -----
 
-Measure HTML/CSS workloads that replicate what a typography-heavy newsletter page might see.
-Rename to Zine?
+Measure HTML/CSS workloads that replicate what a typography-heavy newsletter/zine page might see.
 
 Design
 ------
@@ -14,9 +13,12 @@ Design
 Features tested
 ---------------
 
-* web fonts
-* CSS typography features
+* Variable fonts, WOFF2
+* ::first-letter (until Firefox supports `initial-letter`)
 * -webkit-text-stroke
+* text underline skip-ink
+* animated margins
+* animated font-size?
 
 Work per measured frame
 ----------------------
@@ -32,3 +34,6 @@ Licensing requirements
 Remaining work
 --------------
 
+* Unique text
+* Different languages
+* More font features?
