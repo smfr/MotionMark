@@ -35,3 +35,5 @@ Remaining work
 * Scrolling
 * Rotated text
 * Header rows
+* Canvas-to-canvas copy
+* getImageData

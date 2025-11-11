@@ -155,6 +155,8 @@ class SheetView {
     {
         const size = this.measureSize();
         const integralSize = new Size(Math.floor(size.width), Math.floor(size.height));
+        
+        this.scrollOffset = new Size(0, 0);
 
         this.columns = this._randomizedColumns(size.width);
         this.rows = this._randomizedRows(size.height);
@@ -167,7 +169,12 @@ class SheetView {
         this.canvas.width = this.canvasSize.width;
         this.canvas.height = this.canvasSize.height;
         
-        this.drawSheet();
+        const ctx = this.canvas.getContext('2d');
+
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
+
+        this.#drawSheet(ctx);
     }
     
     #createCells(rowCount, columnCount)
@@ -193,17 +200,51 @@ class SheetView {
 
     animate()
     {
-        this.drawSheet();
+        this.#scrollSheet();
+    }
+
+    #scrollSheet()
+    {
+        const scrollXDelta = 1;
+        const scrollYDelta = 2;
+        this.scrollOffset = new Size(this.scrollOffset.width + scrollXDelta, this.scrollOffset.height + scrollYDelta);
+        
+        const ctx = this.canvas.getContext('2d');
+        
+        const backingScrollX = scrollXDelta * this.devicePixelRatio;
+        const backingScrollY = scrollYDelta * this.devicePixelRatio;
+        
+        ctx.drawImage(this.canvas, -backingScrollX, -backingScrollY);
+
+        ctx.save();
+        ctx.beginPath();
+        if (backingScrollX > 0)
+            ctx.rect(this.canvasSize.width - backingScrollX, 0, backingScrollX, this.canvasSize.height);
+        else if (backingScrollX < 0)
+            ctx.rect(0, 0, backingScrollX, this.canvasSize.height);
+
+        if (backingScrollY > 0)
+            ctx.rect(0, this.canvasSize.height - backingScrollY, this.canvasSize.width, backingScrollY);
+        else if (backingScrollY < 0)
+            ctx.rect(0, 0, this.canvasSize.width, backingScrollY);
+
+        ctx.closePath();
+        ctx.clip('nonzero');
+
+        this.#drawSheet(ctx);
+        ctx.restore();
     }
     
-    drawSheet()
+    #drawSheet(ctx)
     {
-        const ctx = this.canvas.getContext('2d');
         ctx.save();
-        
-        ctx.fillStyle = 'white';
-        ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
+
         ctx.scale(this.devicePixelRatio, this.devicePixelRatio);
+        
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
+        
+        ctx.translate(-this.scrollOffset.width, -this.scrollOffset.height);
         
         this.#drawGrid(ctx);
         this.#drawCells(ctx);
@@ -220,16 +261,6 @@ class SheetView {
 
         ctx.save();
         
-        // White background.
-        // FIXME: This clip is probably just about scrolling.
-        ctx.beginPath();
-        ctx.rect(0, 0, this.canvasSize.width, this.canvasSize.height);
-        ctx.closePath();
-        ctx.clip('nonzero');
-
-        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-        ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
-
         // FIXME: We can cache this path.
         const gridPath = new Path2D();
 
@@ -306,12 +337,14 @@ class SheetView {
         const minColumnWidth = Math.min(30, availableSpace / 10);
         const maxColumnWidth = Math.max(200, availableSpace / 5);
 
+        const columnCoverageWidth = 2 * availableSpace;
+
         let totalWidth = 0;
         const columns = [];
         let label = 'A';
 
         // We let the total width exceed availableSpace, so the last column clips.
-        while (totalWidth < availableSpace) {
+        while (totalWidth < columnCoverageWidth) {
             const width = Stage.randomInt(minColumnWidth, maxColumnWidth);
             const colorAlpha = 0.2;
             const color = Stage.randomRGBColor(colorAlpha);
@@ -326,6 +359,7 @@ class SheetView {
     _randomizedRows(availableSpace)
     {
         const numRows = 8;
+        const rowCoverageHeight = 2 * availableSpace;
         const rowHeight = Math.floor(this.canvas.height / numRows);
 
         let totalHeight = 0;
@@ -333,7 +367,7 @@ class SheetView {
         let label = '1';
 
         // We let the total width exceed availableSpace, so the last column clips.
-        while (totalHeight < availableSpace) {
+        while (totalHeight < rowCoverageHeight) {
             const color = 'rgba(0, 0, 0, 0)';
             const row = new Row(label++, rowHeight, color);
 
@@ -424,7 +458,7 @@ class FakeController {
     shouldStop()
     {
         const now = new Date();
-        return (now - this.startTime) > 1500;
+        return (now - this.startTime) > 5000;
     }
     
     results()
