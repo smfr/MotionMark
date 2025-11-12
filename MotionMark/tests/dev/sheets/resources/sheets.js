@@ -92,8 +92,7 @@ class SheetCell {
     draw(ctx, cellSize)
     {
         
-    }
-    
+    }   
 }
 
 class TextSheetCell {
@@ -119,7 +118,14 @@ class ImageSheetCell {
     draw(ctx, cellSize)
     {
         const padding = 4;
-        ctx.drawImage(this.image, padding, padding - cellSize.height, cellSize.width - 2 * padding, cellSize.height - 2 * padding);
+        const insetRect = new Rect(new Point(0, 0), cellSize).inflatedBy(new Size(-padding, -padding));
+
+        const destRect = GeometryHelpers.containRect(
+            new Rect(new Point(0, 0), new Size(this.image.width, this.image.height)),
+            insetRect
+        );
+
+        ctx.drawImage(this.image, destRect.x, -cellSize.height + destRect.y, destRect.width, destRect.height);
     }
 }
 
