@@ -67,11 +67,12 @@ class RandomPlacementLayout extends ItemLayout {
 
 
 class Column {
-    constructor(label, width, fillColor)
+    constructor(label, width, fillColor, cellClass)
     {
         this.label = label;
         this.width = width;
         this.fillColor = fillColor;
+        this.cellClass = cellClass;
     }
 }
 
@@ -88,7 +89,7 @@ class Row {
 
 
 class SheetCell {
-    draw(ctx)
+    draw(ctx, cellSize)
     {
         
     }
@@ -101,7 +102,7 @@ class TextSheetCell {
         this.text = text;
     }
 
-    draw(ctx)
+    draw(ctx, cellSize)
     {
         const padding = 4;
         ctx.fillStyle = 'black';
@@ -110,14 +111,46 @@ class TextSheetCell {
 }
 
 class ImageSheetCell {
-    constructor(image)
+    constructor(imageURL)
     {
-        this.image = image;
+        this.image = new Image();
+        this.image.src = imageURL;
     }
 
-    draw(ctx)
+    draw(ctx, cellSize)
     {
-        
+        const padding = 4;
+        ctx.drawImage(this.image, padding, padding - cellSize.height, cellSize.width - 2 * padding, cellSize.height - 2 * padding);
+    }
+}
+
+class NumericSheetCell {
+    constructor(value)
+    {
+        this.value = value;
+    }
+
+    draw(ctx, cellSize)
+    {
+        // FIXME: Align on the period
+        const padding = 4;
+        ctx.fillStyle = 'black';
+        ctx.fillText(this.value, padding, -padding);
+    }
+}
+
+class CurrencySheetCell {
+    constructor(value)
+    {
+        this.value = value;
+    }
+
+    draw(ctx, cellSize)
+    {
+        // FIXME: Align on the period
+        const padding = 4;
+        ctx.fillStyle = 'black';
+        ctx.fillText(this.value, padding, -padding);
     }
 }
 
@@ -133,6 +166,8 @@ class Sheet {
 class SheetView {
     constructor(stage)
     {
+        this.stage = stage;
+        
         this.container = document.createElement('section');
         this.container.className = 'sheet';
         
@@ -141,7 +176,7 @@ class SheetView {
 
         this.sheet = new Sheet();
         
-        stage.appendChild(this.container);
+        this.stage.element.appendChild(this.container);
         
         this.#prepare();
     }
@@ -158,8 +193,27 @@ class SheetView {
         
         this.scrollOffset = new Size(0, 0);
 
-        this.columns = this._randomizedColumns(size.width);
-        this.rows = this._randomizedRows(size.height);
+        // this.columns = this._randomizedColumns(size.width);
+        
+        this.columns = [];
+        let columnLabel = 'A';
+        for (let colInfo of this.stage.columns) {
+            const colorAlpha = 0.2;
+            const color = Stage.randomRGBColor(colorAlpha);
+
+            const column = new Column(columnLabel++, parseFloat(colInfo.width), color, this.#cellClassFromColumnType(colInfo.type));
+            this.columns.push(column);
+        }
+
+        //this.rows = this._randomizedRows(size.height);
+        const rowHeight = 150;
+        let rowLabel = '1';
+        this.rows = [];
+        for (let plantInfo of this.stage.plantList) {
+            const color = 'rgba(0, 0, 0, 0)';
+            const row = new Row(rowLabel++, rowHeight, color);
+            this.rows.push(row);
+        }
         
         this.#createCells(this.rows.length, this.columns.length);
 
@@ -177,18 +231,34 @@ class SheetView {
         this.#drawSheet(ctx);
     }
     
+    #cellClassFromColumnType(columnType)
+    {
+        switch (columnType) {
+        case 'text':
+            return TextSheetCell;
+        case 'image':
+            return ImageSheetCell;
+        case 'numeric':
+            return NumericSheetCell;
+        case 'currency':
+            return CurrencySheetCell;
+        }
+    }
+    
     #createCells(rowCount, columnCount)
     {
         this.cells = Array.from({ length: rowCount }, () => new Array(columnCount));
 
-        for (let col = 0; col < columnCount; ++col) {
+        for (let colIndex = 0; colIndex < columnCount; ++colIndex) {
+            const columnData = this.stage.columns[colIndex];
+            const column = this.columns[colIndex];
 
+            for (let rowIndex = 0; rowIndex < rowCount; ++rowIndex) {
+                const row = this.rows[rowIndex];
+                const plantData = this.stage.plantList[rowIndex];
 
-            for (let row = 0; row < rowCount; ++row) {
-
-                this.cells[col][row] = new TextSheetCell(`row: ${row} col: ${col}`);
+                this.cells[colIndex][rowIndex] = new column.cellClass(plantData[columnData.key]);
             }
-            
         }
     }
 
@@ -205,7 +275,7 @@ class SheetView {
 
     #scrollSheet()
     {
-        const scrollXDelta = 1;
+        const scrollXDelta = 0;
         const scrollYDelta = 2;
         this.scrollOffset = new Size(this.scrollOffset.width + scrollXDelta, this.scrollOffset.height + scrollYDelta);
         
@@ -315,7 +385,9 @@ class SheetView {
                 const col = this.columns[colIndex];
                 
                 ctx.save();
-                const cellRect = new Rect(new Point(currX, currY), new Size(col.width, row.height));
+                
+                const cellSize = new Size(col.width, row.height);
+                const cellRect = new Rect(new Point(currX, currY), cellSize);
 
                 ctx.translate(cellRect.x, cellRect.y);
                 const clipPath = new Path2D();
@@ -323,7 +395,7 @@ class SheetView {
                 ctx.clip(clipPath, 'evenodd');
 
                 const cell = this.cells[colIndex][rowIndex];
-                cell.draw(ctx);
+                cell.draw(ctx, cellSize);
 
                 ctx.restore();
 
@@ -395,9 +467,19 @@ class SheetsStage extends Stage {
     {
         await super.initialize(benchmark, options);
 
+        const response = await fetch('resources/sheet-data.json');
+        if (!response.ok)
+            console.error(`Failed to fetch JSON`);
+        
+        const jsonData = await response.json();
+        this.columns = jsonData.columns;
+        this.plantList = jsonData.houseplants;
+
+        await this.#loadImages();
+
         const stageRect = this.element.getBoundingClientRect();
 
-        const sheetView = new SheetView(this.element, this.sheetSize);
+        const sheetView = new SheetView(this, this.sheetSize);
         this.sheetSize = sheetView.measureSize();
         sheetView.remove();
         
@@ -417,7 +499,7 @@ class SheetsStage extends Stage {
             
         } else {
             for (let itemCount = this._complexity; itemCount < newComplexity; ++itemCount) {
-                const sheet = new SheetView(this.element, this.sheetSize);
+                const sheet = new SheetView(this, this.sheetSize);
                 this._sheetViews.push(sheet);
             }
         }
@@ -436,6 +518,19 @@ class SheetsStage extends Stage {
     complexity()
     {
         return this._complexity;
+    }
+    
+    async #loadImages()
+    {
+        const promises = this.plantList.map((data) => {
+            return new Promise(resolve => {
+                const image = new Image();
+                image.onload = resolve;
+                image.src = data.image;
+            })
+        });
+
+        await Promise.all(promises);
     }
 }
 

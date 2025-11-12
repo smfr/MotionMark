@@ -1,0 +1,135 @@
+{
+  "columns": [
+    {
+      "key": "common_name",
+      "width": "300",
+      "type": "text"
+    },
+    {
+      "key": "species_name",
+      "width": "200",
+      "type": "text"
+    },
+    {
+      "key": "image",
+      "width": "400",
+      "type": "image"
+    },
+    {
+      "key": "height_inches",
+      "width": "50",
+      "type": "text"
+    },
+    {
+      "key": "price",
+      "width": "50",
+      "type": "currency"
+    }
+  ],
+  "houseplants": [
+    {
+      "id": 1,
+      "image": "resources/images/agave.jpg",
+      "species_name": "Agave parryi",
+      "common_name": "Agave",
+      "height_inches": 48,
+      "price": 135.99
+    },
+    {
+      "id": 2,
+      "image": "resources/images/aglaonema.jpg",
+      "species_name": "Aglaonema sp.",
+      "common_name": "Chinese Evergreen",
+      "height_inches": 6,
+      "price": 15.99
+    },
+    {
+      "id": 3,
+      "image": "resources/images/monstera.jpg",
+      "species_name": "Monstera deliciosa",
+      "common_name": "Swiss Cheese Plant",
+      "height_inches": 36,
+      "price": 65.99
+    },
+    {
+      "id": 4,
+      "image": "resources/images/cactus.jpg",
+      "species_name": "Acanthocereus tetragonus",
+      "common_name": "Fairy Castle Cactus",
+      "height_inches": 8,
+      "price": 49.99
+    },
+    {
+      "id": 5,
+      "image": "resources/images/rubber-plant2.jpg",
+      "species_name": "Ficus elastica",
+      "common_name": "Rubber Plant",
+      "height_inches": 30,
+      "price": 42.99
+    },
+    {
+      "id": 6,
+      "image": "resources/images/fern.jpg",
+      "species_name": "Athyrium filix-femina",
+      "common_name": "Lady in Red Fern",
+      "height_inches": 18,
+      "price": 28.99
+    },
+    {
+      "id": 7,
+      "image": "resources/images/gasteria.jpg",
+      "species_name": "Gasteria retusa",
+      "common_name": "Hex River ox-tongue",
+      "height_inches": 7,
+      "price": 15.99
+    },
+    {
+      "id": 8,
+      "image": "resources/images/howarthia.jpg",
+      "species_name": "Howarthia sp.",
+      "common_name": "Howarthia",
+      "height_inches": 13,
+      "price": 38.99
+    },
+    {
+      "id": 9,
+      "image": "resources/images/palm.jpg",
+      "species_name": "Dypsis lutescens",
+      "common_name": "Areca Palm",
+      "height_inches": 48,
+      "price": 216.99
+    },
+    {
+      "id": 10,
+      "image": "resources/images/philodendron.jpg",
+      "species_name": "Philodendron selloum",
+      "common_name": "Tree Philodendron",
+      "height_inches": 36,
+      "price": 122.99
+    },
+    {
+      "id": 11,
+      "image": "resources/images/philodendron2.jpg",
+      "species_name": "Philodendron hederaceum",
+      "common_name": "Heart-leaf Philodendron",
+      "height_inches": 12,
+      "price": 75.99
+    },
+    {
+      "id": 12,
+      "image": "resources/images/polygonatum.jpg",
+      "species_name": "Polygonatum odoratum",
+      "common_name": "Variegated Solomon's Seal",
+      "height_inches": 24,
+      "price": 54.99
+    },
+    {
+      "id": 14,
+      "image": "resources/images/sedum.jpg",
+      "species_name": "Sedum Sp.",
+      "common_name": "Sedum",
+      "height_inches": 5,
+      "price": 14.99
+    }
+  ]
+}
