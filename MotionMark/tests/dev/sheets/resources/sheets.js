@@ -111,10 +111,9 @@ class TextSheetCell {
 }
 
 class ImageSheetCell {
-    constructor(imageURL)
+    constructor(image)
     {
-        this.image = new Image();
-        this.image.src = imageURL;
+        this.image = image;
     }
 
     draw(ctx, cellSize)
@@ -257,7 +256,12 @@ class SheetView {
                 const row = this.rows[rowIndex];
                 const plantData = this.stage.plantList[rowIndex];
 
-                this.cells[colIndex][rowIndex] = new column.cellClass(plantData[columnData.key]);
+                const dataType = plantData[columnData.key];
+                let cellData = plantData[columnData.key];
+                if (columnData.key === 'image')
+                    cellData = this.stage.images[cellData];
+
+                this.cells[colIndex][rowIndex] = new column.cellClass(cellData);
             }
         }
     }
@@ -522,12 +526,15 @@ class SheetsStage extends Stage {
     
     async #loadImages()
     {
+        this.images = { };
         const promises = this.plantList.map((data) => {
-            return new Promise(resolve => {
-                const image = new Image();
-                image.onload = resolve;
+            const image = new Image();
+            this.images[data.image] = image;
+            return new Promise((resolve, reject) => {
+                image.onload = () => image.decode().then(() => resolve());
+                image.onerror = () => reject(new Error(`Failed to load image: ${data.image}`));
                 image.src = data.image;
-            })
+            });
         });
 
         await Promise.all(promises);

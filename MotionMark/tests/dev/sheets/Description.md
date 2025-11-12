@@ -14,7 +14,7 @@ Features tested
 ---------------
 
 * measureText
-* drawBidiText
+* drawText
 * canvas to canvas copy
 * copy from other canvases (with getImageData)
 
@@ -31,9 +31,6 @@ Licensing requirements
 Remaining work
 --------------
 
-* Different cell types
-* Scrolling
 * Rotated text
 * Header rows
-* Canvas-to-canvas copy
 * getImageData
