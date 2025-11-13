@@ -65,6 +65,7 @@ class RandomPlacementLayout extends ItemLayout {
     }
 }
 
+/* -------------------------------------------------------- */
 
 class Column {
     constructor(label, width, fillColor, cellClass)
@@ -85,14 +86,12 @@ class Row {
     }
 }
 
-
-
+/* -------------------------------------------------------- */
 
 class SheetCell {
     static CELL_PADDING = 4;
     draw(ctx, cellSize)
     {
-        
     }   
 }
 
@@ -240,14 +239,7 @@ class CurrencySheetCell extends TextDrawingSheetCell {
     }
 }
 
-class Sheet {
-    constructor()
-    {
-        this.rows = [];
-        this.columns = [];
-    }
-}
-
+/* -------------------------------------------------------- */
 
 class SheetView {
     constructor(stage)
@@ -259,8 +251,6 @@ class SheetView {
         
         this.canvas = document.createElement('canvas');
         this.container.appendChild(this.canvas);
-
-        this.sheet = new Sheet();
         
         this.stage.element.appendChild(this.container);
         
@@ -301,6 +291,9 @@ class SheetView {
             this.rows.push(row);
         }
         
+        this.headerRow = new Row('', rowHeight, 'rgba(0, 0, 100, 0)', TextSheetCell);
+        this.headerColumn = new Column('', 50, 'rgba(0, 0, 100, 0)', TextSheetCell);
+
         this.#createCells(this.rows.length, this.columns.length);
 
         this.devicePixelRatio = 2;
@@ -352,6 +345,18 @@ class SheetView {
                 this.cells[colIndex][rowIndex] = cell;
             }
         }
+        
+        this.headerRowCells = new Array(columnCount);
+        for (let colIndex = 0; colIndex < columnCount; ++colIndex) {
+            const cell = new TextSheetCell('hi');
+            this.headerRowCells[colIndex] = cell;
+        }
+
+        this.headerColumnCells = new Array(columnCount);
+        for (let rowIndex = 0; rowIndex < columnCount; ++rowIndex) {
+            const cell = new TextSheetCell('hi');
+            this.headerColumnCells[rowIndex] = cell;
+        }
     }
 
     measureSize(container)
@@ -362,7 +367,7 @@ class SheetView {
 
     animate()
     {
-        this.#scrollSheet();
+        //this.#scrollSheet();
     }
 
     #scrollSheet()
@@ -405,7 +410,40 @@ class SheetView {
         
         ctx.fillStyle = 'rgba(255, 255, 255, 1)';
         ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
-        
+
+        // Draw header row
+        let currX = 0;
+        let currY = this.headerRow.height;
+        for (let colIndex = 0; colIndex < this.columns.length; ++colIndex) {
+            const col = this.columns[colIndex];
+            
+            ctx.save();
+            
+            const cellSize = new Size(col.width, this.headerRow.height);
+            const cellRect = new Rect(new Point(currX, currY), cellSize);
+
+            ctx.translate(cellRect.x, cellRect.y);
+            const clipPath = new Path2D();
+            clipPath.rect(0, -cellRect.height, cellRect.width, cellRect.height);
+            ctx.clip(clipPath, 'evenodd');
+
+            const cell = this.headerRowCells[colIndex];
+
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+            ctx.fillRect(0, -cellRect.height, cellRect.width, cellRect.height);
+
+
+            cell.draw(ctx, cellSize);
+
+            ctx.restore();
+
+            currX += col.width;
+        }
+
+
+        // Draw header column
+
+
         ctx.translate(-this.scrollOffset.width, -this.scrollOffset.height);
         
         this.#drawGrid(ctx);
