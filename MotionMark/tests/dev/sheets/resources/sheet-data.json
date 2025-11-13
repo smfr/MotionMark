@@ -3,12 +3,19 @@
     {
       "key": "common_name",
       "width": "300",
-      "type": "text"
+      "type": "text",
+      "fontSize": "18px",
+      "alignment": "center",
+      "wraps": "true"
     },
     {
       "key": "species_name",
       "width": "200",
-      "type": "text"
+      "type": "text",
+      "fontSize": "18px",
+      "textStyle": "italic",
+      "alignment": "left",
+      "wraps": "true"
     },
     {
       "key": "image",
@@ -17,13 +24,17 @@
     },
     {
       "key": "height_inches",
-      "width": "50",
-      "type": "text"
+      "width": "80",
+      "type": "text",
+      "fontSize": "18px",
+      "alignment": "right"
     },
     {
       "key": "price",
-      "width": "50",
-      "type": "currency"
+      "width": "80",
+      "type": "currency",
+      "fontSize": "18px",
+      "alignment": "right"
     }
   ],
   "houseplants": [
@@ -33,7 +44,7 @@
       "species_name": "Agave parryi",
       "common_name": "Agave",
       "height_inches": 48,
-      "price": 135.99
+      "price": 135.995
     },
     {
       "id": 2,
@@ -129,7 +140,7 @@
       "species_name": "Sedum Sp.",
       "common_name": "Sedum",
       "height_inches": 5,
-      "price": 14.99
+      "price": 9.99
     }
   ]
 }

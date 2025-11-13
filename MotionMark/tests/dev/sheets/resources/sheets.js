@@ -89,23 +89,91 @@ class Row {
 
 
 class SheetCell {
+    static CELL_PADDING = 4;
     draw(ctx, cellSize)
     {
         
     }   
 }
 
-class TextSheetCell {
-    constructor(text)
+class TextDrawingSheetCell {
+    constructor(fontSize, textStyle, alignment, wrap)
     {
-        this.text = text;
+        this.fontSize = fontSize ?? 18;
+        this.textStyle = textStyle ?? '';
+        this.alignment = alignment ?? 'left';
+        this.wrapText = wrap ?? false;
+    }
+    
+    get textValue()
+    {
+        return '';
     }
 
     draw(ctx, cellSize)
     {
-        const padding = 4;
+        this.drawText(ctx, cellSize, this.textValue);
+    }
+    
+    drawText(ctx, cellSize, text)
+    {
+        ctx.font = `${this.fontSize} Arial ${this.textStyle}`;
         ctx.fillStyle = 'black';
-        ctx.fillText(this.text, padding, -padding);
+        
+        const availableWidth = cellSize.width - 2 * SheetCell.CELL_PADDING;
+        const metrics = ctx.measureText(text);
+        let location = this.textDrawingLocation(ctx, cellSize, metrics);
+
+        if (metrics.width > availableWidth && this.wrapText) {
+            const words = text.split(' ');
+            const textHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
+            if (words.length > 1) {
+                location = this.textDrawingLocation(ctx, cellSize, metrics, words.length);
+                
+                let yOffset = location.y;
+                for (let word of words) {
+                    
+                    ctx.fillText(word, location.x, location.y + yOffset);
+                    yOffset += textHeight;
+                }
+                return;
+            }
+        }
+
+        ctx.fillText(text, location.x, location.y);
+    }
+    
+    textDrawingLocation(ctx, cellSize, textMetrics, lineCount = 1)
+    {
+        const textHeight = lineCount * (textMetrics.fontBoundingBoxAscent + textMetrics.fontBoundingBoxDescent);
+        const yOffset = (cellSize.height - SheetCell.CELL_PADDING * 2 - textHeight) / 2 - textMetrics.fontBoundingBoxDescent;
+        
+        let xOffset = SheetCell.CELL_PADDING;
+        switch (this.alignment) {
+        case 'left':
+            break;
+        case 'right':
+            xOffset = cellSize.width - SheetCell.CELL_PADDING - textMetrics.width;
+            break;
+        case 'center':
+            xOffset = ((cellSize.width - SheetCell.CELL_PADDING * 2) - textMetrics.width) / 2;
+            break;
+        }
+        
+        return new Point(xOffset, -yOffset);
+    }
+}
+
+class TextSheetCell extends TextDrawingSheetCell {
+    constructor(text, fontSize, textStyle, alignment, wrap)
+    {
+        super(fontSize, textStyle, alignment, wrap);
+        this.text = text;
+    }
+
+    get textValue()
+    {
+        return this.text;
     }
 }
 
@@ -117,8 +185,7 @@ class ImageSheetCell {
 
     draw(ctx, cellSize)
     {
-        const padding = 4;
-        const insetRect = new Rect(new Point(0, 0), cellSize).inflatedBy(new Size(-padding, -padding));
+        const insetRect = new Rect(new Point(0, 0), cellSize).inflatedBy(new Size(-SheetCell.CELL_PADDING, -SheetCell.CELL_PADDING));
 
         const destRect = GeometryHelpers.containRect(
             new Rect(new Point(0, 0), new Size(this.image.width, this.image.height)),
@@ -129,33 +196,47 @@ class ImageSheetCell {
     }
 }
 
-class NumericSheetCell {
-    constructor(value)
+class NumericSheetCell extends TextDrawingSheetCell {
+    constructor(value, fontSize, textStyle, alignment)
     {
+        super(fontSize, textStyle, alignment);
         this.value = value;
     }
 
-    draw(ctx, cellSize)
+    get textValue()
     {
-        // FIXME: Align on the period
-        const padding = 4;
-        ctx.fillStyle = 'black';
-        ctx.fillText(this.value, padding, -padding);
+        return this.value.toString();
     }
 }
 
-class CurrencySheetCell {
-    constructor(value)
+class CurrencySheetCell extends TextDrawingSheetCell {
+    constructor(value, fontSize, textStyle, alignment)
     {
+        super(fontSize, textStyle, alignment);
         this.value = value;
     }
 
-    draw(ctx, cellSize)
+    get textValue()
     {
-        // FIXME: Align on the period
-        const padding = 4;
-        ctx.fillStyle = 'black';
-        ctx.fillText(this.value, padding, -padding);
+        const currency = '$';
+        return `${currency}${this.value}`;
+    }
+    
+    textDrawingLocation(ctx, cellSize, textMetrics)
+    {
+        let location = super.textDrawingLocation(ctx, cellSize, textMetrics);
+
+        let leadingWidth = 0;
+        const currency = '$';
+        const decimalOffset = this.textValue.indexOf('.');
+        if (decimalOffset != -1)
+            leadingWidth = ctx.measureText(this.textValue.substring(0, decimalOffset)).width;
+        
+        const zerosMetrics = ctx.measureText('000');
+        const textHeight = zerosMetrics.fontBoundingBoxAscent + zerosMetrics.fontBoundingBoxDescent;
+        const textStartX = cellSize.width - SheetCell.CELL_PADDING - leadingWidth - zerosMetrics.width;
+        
+        return new Point(textStartX, location.y);
     }
 }
 
@@ -267,7 +348,8 @@ class SheetView {
                 if (columnData.key === 'image')
                     cellData = this.stage.images[cellData];
 
-                this.cells[colIndex][rowIndex] = new column.cellClass(cellData);
+                const cell = new column.cellClass(cellData, columnData.fontSize, columnData.textStyle, columnData.alignment, columnData.wraps);
+                this.cells[colIndex][rowIndex] = cell;
             }
         }
     }
