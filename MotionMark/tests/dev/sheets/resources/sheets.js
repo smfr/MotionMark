@@ -242,6 +242,8 @@ class CurrencySheetCell extends TextDrawingSheetCell {
 /* -------------------------------------------------------- */
 
 class SheetView {
+    static DIVIDER_THICKNESS = 4;
+
     constructor(stage)
     {
         this.stage = stage;
@@ -272,12 +274,12 @@ class SheetView {
         // this.columns = this._randomizedColumns(size.width);
         
         this.columns = [];
-        let columnLabel = 'A';
+
         for (let colInfo of this.stage.columns) {
             const colorAlpha = 0.2;
             const color = Stage.randomRGBColor(colorAlpha);
 
-            const column = new Column(columnLabel++, parseFloat(colInfo.width), color, this.#cellClassFromColumnType(colInfo.type));
+            const column = new Column(colInfo.title, parseFloat(colInfo.width), color, this.#cellClassFromColumnType(colInfo.type));
             this.columns.push(column);
         }
 
@@ -291,8 +293,10 @@ class SheetView {
             this.rows.push(row);
         }
         
-        this.headerRow = new Row('', rowHeight, 'rgba(0, 0, 100, 0)', TextSheetCell);
-        this.headerColumn = new Column('', 50, 'rgba(0, 0, 100, 0)', TextSheetCell);
+        const headerRowHeight = 50;
+        const headerColumnWidth = 50;
+        this.headerRow = new Row('', headerRowHeight, 'rgba(0, 0, 100, 0)', TextSheetCell);
+        this.headerColumn = new Column('', headerColumnWidth, 'rgba(0, 0, 100, 0)', TextSheetCell);
 
         this.#createCells(this.rows.length, this.columns.length);
 
@@ -307,7 +311,8 @@ class SheetView {
         ctx.fillStyle = 'rgba(255, 255, 255, 1)';
         ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
 
-        this.#drawSheet(ctx);
+        this.#drawBodyCells(ctx);
+        this.#drawHeaders(ctx);
     }
     
     #cellClassFromColumnType(columnType)
@@ -348,13 +353,14 @@ class SheetView {
         
         this.headerRowCells = new Array(columnCount);
         for (let colIndex = 0; colIndex < columnCount; ++colIndex) {
-            const cell = new TextSheetCell('hi');
+            const columnData = this.stage.columns[colIndex];
+            const cell = new TextSheetCell(columnData.title, this.stage.columns[0].fontSize);
             this.headerRowCells[colIndex] = cell;
         }
 
-        this.headerColumnCells = new Array(columnCount);
-        for (let rowIndex = 0; rowIndex < columnCount; ++rowIndex) {
-            const cell = new TextSheetCell('hi');
+        this.headerColumnCells = new Array(rowCount);
+        for (let rowIndex = 0; rowIndex < rowCount; ++rowIndex) {
+            const cell = new TextSheetCell((rowIndex + 1).toString(), this.stage.columns[0].fontSize);
             this.headerColumnCells[rowIndex] = cell;
         }
     }
@@ -367,12 +373,12 @@ class SheetView {
 
     animate()
     {
-        //this.#scrollSheet();
+        this.#scrollSheet();
     }
 
     #scrollSheet()
     {
-        const scrollXDelta = 0;
+        const scrollXDelta = 1;
         const scrollYDelta = 2;
         this.scrollOffset = new Size(this.scrollOffset.width + scrollXDelta, this.scrollOffset.height + scrollYDelta);
         
@@ -398,11 +404,13 @@ class SheetView {
         ctx.closePath();
         ctx.clip('nonzero');
 
-        this.#drawSheet(ctx);
+        this.#drawBodyCells(ctx);
         ctx.restore();
+        
+        this.#drawHeaders(ctx);
     }
     
-    #drawSheet(ctx)
+    #drawBodyCells(ctx)
     {
         ctx.save();
 
@@ -411,16 +419,68 @@ class SheetView {
         ctx.fillStyle = 'rgba(255, 255, 255, 1)';
         ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
 
-        // Draw header row
-        let currX = 0;
-        let currY = this.headerRow.height;
+        ctx.translate(this.headerColumn.width - this.scrollOffset.width, this.headerRow.height - this.scrollOffset.height);
+        
+        this.#drawGrid(ctx);
+        this.#drawCells(ctx);
+
+        ctx.restore();
+    }
+    
+    #drawHeaders(ctx)
+    {
+        ctx.save();
+
+        ctx.scale(this.devicePixelRatio, this.devicePixelRatio);
+        this.#drawHeaderRow(ctx);
+        this.#drawHeaderColumn(ctx);
+        
+        // Just splat a rect over the top left corner.
+        const cornerRect = new Rect(new Point(0, 0), new Size(this.headerColumn.width, this.headerRow.height));
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.fillRect(cornerRect.x, cornerRect.y, cornerRect.width, cornerRect.height);
+
+        ctx.strokeStyle = 'rgba(31, 31, 31, 0.133)';
+        ctx.lineWidth = 1;
+        ctx.strokeRect(cornerRect.x, cornerRect.y, cornerRect.width, cornerRect.height);
+        
+        // Dividers
+        ctx.strokeStyle = 'rgba(220, 220, 220, 1)';
+        ctx.lineWidth = SheetView.DIVIDER_THICKNESS;
+        ctx.beginPath();
+        ctx.moveTo(0, this.headerRow.height);
+        ctx.lineTo(this.canvasSize.width, this.headerRow.height);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(this.headerColumn.width, 0);
+        ctx.lineTo(this.headerColumn.width, this.canvasSize.height);
+        ctx.stroke();
+
+        ctx.restore();
+    }
+
+    #drawHeaderRow(ctx)
+    {
+        let currX = this.headerColumn.width - this.scrollOffset.width;
+        const rowHeight = this.headerRow.height;
+
+        const headerRect = new Rect(new Point(0, 0), new Size(this.canvasSize.width, rowHeight));
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.fillRect(headerRect.x, headerRect.y, headerRect.width, headerRect.height);
+
+        const gridPath = new Path2D();
+
         for (let colIndex = 0; colIndex < this.columns.length; ++colIndex) {
             const col = this.columns[colIndex];
+
+            gridPath.moveTo(currX, 0);
+            gridPath.lineTo(currX, rowHeight);
             
             ctx.save();
             
-            const cellSize = new Size(col.width, this.headerRow.height);
-            const cellRect = new Rect(new Point(currX, currY), cellSize);
+            const cellSize = new Size(col.width, rowHeight);
+            const cellRect = new Rect(new Point(currX, rowHeight), cellSize);
 
             ctx.translate(cellRect.x, cellRect.y);
             const clipPath = new Path2D();
@@ -428,11 +488,6 @@ class SheetView {
             ctx.clip(clipPath, 'evenodd');
 
             const cell = this.headerRowCells[colIndex];
-
-            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-            ctx.fillRect(0, -cellRect.height, cellRect.width, cellRect.height);
-
-
             cell.draw(ctx, cellSize);
 
             ctx.restore();
@@ -440,16 +495,46 @@ class SheetView {
             currX += col.width;
         }
 
+        this.#strokeGridPath(ctx, gridPath);
+    }
 
-        // Draw header column
+    #drawHeaderColumn(ctx)
+    {
+        let currY = this.headerRow.height - this.scrollOffset.height;
+        const columnWidth = this.headerColumn.width;
 
+        const headerRect = new Rect(new Point(0, 0), new Size(columnWidth, this.canvasSize.height));
+        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+        ctx.fillRect(headerRect.x, headerRect.y, headerRect.width, headerRect.height);
 
-        ctx.translate(-this.scrollOffset.width, -this.scrollOffset.height);
-        
-        this.#drawGrid(ctx);
-        this.#drawCells(ctx);
+        const gridPath = new Path2D();
 
-        ctx.restore();
+        for (let rowIndex = 0; rowIndex < this.rows.length; ++rowIndex) {
+            const row = this.rows[rowIndex];
+
+            gridPath.moveTo(0, currY);
+            gridPath.lineTo(columnWidth, currY);
+            
+            ctx.save();
+            
+            const cellSize = new Size(columnWidth, row.height);
+            const cellRect = new Rect(new Point(0, currY), cellSize);
+
+            ctx.translate(cellRect.x, cellRect.y);
+            const clipPath = new Path2D();
+            clipPath.rect(0, -cellRect.height, cellRect.width, cellRect.height);
+            ctx.clip(clipPath, 'evenodd');
+
+            const cell = this.headerColumnCells[rowIndex];
+            console.log(`header cell ${cell} for row ${rowIndex}`)
+            cell.draw(ctx, cellSize);
+            
+            ctx.restore();
+
+            currY += row.height;
+        }
+
+        this.#strokeGridPath(ctx, gridPath);
     }
     
     #drawGrid(ctx)
@@ -482,8 +567,13 @@ class SheetView {
             currY += row.height;
         }
 
+        this.#strokeGridPath(ctx, gridPath);
+        ctx.restore();
+    }
+    
+    #strokeGridPath(ctx, path)
+    {
         ctx.strokeStyle = 'rgba(31, 31, 31, 0.133)';
-
         ctx.lineWidth = 1;
         
         if (ctx.lineCap != 'square')
@@ -497,8 +587,7 @@ class SheetView {
 
         ctx.lineDashOffset = 0;
         ctx.setLineDash([]);
-        ctx.stroke(gridPath);
-        ctx.restore();
+        ctx.stroke(path);
     }
     
     #drawCells(ctx)
