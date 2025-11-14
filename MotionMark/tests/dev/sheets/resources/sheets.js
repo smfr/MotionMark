@@ -68,21 +68,23 @@ class RandomPlacementLayout extends ItemLayout {
 /* -------------------------------------------------------- */
 
 class Column {
-    constructor(label, width, fillColor, cellClass)
+    constructor(label, width, fillColor, cellClass, data)
     {
         this.label = label;
         this.width = width;
         this.fillColor = fillColor;
         this.cellClass = cellClass;
+        this.data = data;
     }
 }
 
 class Row {
-    constructor(label, height, fillColor)
+    constructor(label, height, fillColor, data)
     {
         this.label = label;
         this.height = height;
         this.fillColor = fillColor;
+        this.data = data;
     }
 }
 
@@ -96,12 +98,13 @@ class SheetCell {
 }
 
 class TextDrawingSheetCell {
-    constructor(fontSize, textStyle, alignment, wrap)
+    constructor(fontSize, textStyle, alignment, wrap, rotation)
     {
         this.fontSize = fontSize ?? 18;
         this.textStyle = textStyle ?? '';
         this.alignment = alignment ?? 'left';
         this.wrapText = wrap ?? false;
+        this.rotation = rotation ?? 0;
     }
     
     get textValue()
@@ -167,7 +170,26 @@ class TextDrawingSheetCell {
             }
         }
 
+        function deg2rad(degrees)
+        {
+            return degrees * Math.PI / 180;
+        }
+        
+        if (this.rotation) {
+            ctx.save();
+            ctx.translate(location.x, location.y);
+            ctx.rotate(deg2rad(this.rotation));
+            ctx.translate(-location.x, -location.y);
+            
+            if (this.rotation === 270)
+                location.x += metrics.fontBoundingBoxAscent / 2; // Fudge.
+        }
+
+        ctx.fillStyle='black';
         ctx.fillText(text, location.x, location.y);
+
+        if (this.rotation)
+            ctx.restore();
     }
     
     textDrawingLocation(ctx, cellSize, textMetrics, lineCount = 1)
@@ -195,9 +217,9 @@ class TextDrawingSheetCell {
 }
 
 class TextSheetCell extends TextDrawingSheetCell {
-    constructor(text, fontSize, textStyle, alignment, wrap)
+    constructor(text, fontSize, textStyle, alignment, wrap, rotation)
     {
-        super(fontSize, textStyle, alignment, wrap);
+        super(fontSize, textStyle, alignment, wrap, rotation);
         this.text = text;
     }
 
@@ -229,9 +251,9 @@ class ImageSheetCell {
 }
 
 class NumericSheetCell extends TextDrawingSheetCell {
-    constructor(value, fontSize, textStyle, alignment)
+    constructor(value, fontSize, textStyle, alignment, wrap, rotation)
     {
-        super(fontSize, textStyle, alignment);
+        super(fontSize, textStyle, alignment, wrap, rotation);
         this.value = value;
     }
 
@@ -242,9 +264,9 @@ class NumericSheetCell extends TextDrawingSheetCell {
 }
 
 class CurrencySheetCell extends TextDrawingSheetCell {
-    constructor(value, fontSize, textStyle, alignment)
+    constructor(value, fontSize, textStyle, alignment, wrap, rotation)
     {
-        super(fontSize, textStyle, alignment);
+        super(fontSize, textStyle, alignment, wrap, rotation);
         this.value = value;
     }
 
@@ -329,7 +351,7 @@ class SheetView {
             const colorAlpha = 0.2;
             const color = Stage.randomRGBColor(colorAlpha);
 
-            const column = new Column(colInfo.title, parseFloat(colInfo.width), color, this.#cellClassFromColumnType(colInfo.type));
+            const column = new Column(colInfo.title, parseFloat(colInfo.width), color, this.#cellClassFromColumnType(colInfo.type), colInfo);
             this.columns.push(column);
             totalWidth += column.width;
         }
@@ -343,13 +365,15 @@ class SheetView {
             this.rows.push(row);
             totalHeight += row.height;
         }
-        
-        const headerRowHeight = 36;
-        const headerColumnWidth = 36;
-        this.headerRow = new Row('', headerRowHeight, 'rgba(0, 0, 100, 0)', TextSheetCell);
-        this.headerColumn = new Column('', headerColumnWidth, 'rgba(0, 0, 100, 0)', TextSheetCell);
-        totalWidth += this.headerColumn.width;
-        totalHeight += this.headerRow.height;
+
+        this.headerRows = this.stage.headerRows.map((rowData) => new Row('', parseFloat(rowData.height), 'rgba(0, 0, 100, 0)', TextSheetCell, rowData));
+        this.headerColumns = this.stage.headerColumns.map((colData) => new Column('', parseFloat(colData.width), 'rgba(0, 0, 100, 0)', TextSheetCell, colData));
+
+        this.headerRowsHeight = this.headerRows.reduce((total, row) => total += row.height, 0);
+        this.headerColumnsWidth = this.headerColumns.reduce((total, col) => total += col.width, 0);
+
+        totalHeight += this.headerRowsHeight;
+        totalWidth += this.headerColumnsWidth;
         
         this.contentsSize = new Size(totalWidth, totalHeight);
 
@@ -372,7 +396,7 @@ class SheetView {
         this.#drawBodyCells(ctx);
         this.#drawHeaders(ctx);
     }
-    
+
     #cellClassFromColumnType(columnType)
     {
         switch (columnType) {
@@ -409,18 +433,35 @@ class SheetView {
             }
         }
         
-        this.headerRowCells = new Array(columnCount);
-        for (let colIndex = 0; colIndex < columnCount; ++colIndex) {
-            const columnData = this.stage.columns[colIndex];
-            const cell = new TextSheetCell(columnData.title, this.stage.columns[0].fontSize, 'bold');
-            this.headerRowCells[colIndex] = cell;
-        }
+        this.headerRowCells = this.headerRows.map(row => {
+            const cells = new Array(columnCount);
+            for (let colIndex = 0; colIndex < columnCount; ++colIndex) {
+                const columnData = this.stage.columns[colIndex];
+                cells[colIndex] = new TextSheetCell(columnData.title, this.stage.columns[0].fontSize, 'bold');
+            }
+            
+            return cells;
+        });
 
-        this.headerColumnCells = new Array(rowCount);
-        for (let rowIndex = 0; rowIndex < rowCount; ++rowIndex) {
-            const cell = new TextSheetCell((rowIndex + 1).toString(), this.stage.columns[0].fontSize, 'bold', 'right');
-            this.headerColumnCells[rowIndex] = cell;
-        }
+        this.headerColumnCells = this.headerColumns.map(col => {
+            const cells = new Array(rowCount);
+
+            for (let rowIndex = 0; rowIndex < rowCount; ++rowIndex) {
+                let label = '';
+                if (col.data.key === 'id')
+                    label = (rowIndex + 1).toString();
+                else if (col.data.key === 'species_summary') {
+                    const plantData = this.stage.plantList[rowIndex];
+                    const species = plantData['species_name'];
+                    label = species.substring(0, species.indexOf(' '));
+                }
+
+                cells[rowIndex] = new TextSheetCell(label, col.data.fontSize, col.data.textStyle, col.data.alignment, col.data.wraps, parseFloat(col.data.rotation));
+            }
+            
+            return cells;
+        });
+
     }
 
     measureSize(container)
@@ -475,8 +516,8 @@ class SheetView {
         
         ctx.drawImage(this.canvas, -backingScrollX, -backingScrollY);
 
-        const headerBackingHeight = (this.headerRow.height + SheetView.DIVIDER_THICKNESS / 2) * this.devicePixelRatio;
-        const headerBackingWidth = (this.headerColumn.width + SheetView.DIVIDER_THICKNESS / 2) * this.devicePixelRatio;
+        const headerBackingHeight = (this.headerRowsHeight + SheetView.DIVIDER_THICKNESS / 2) * this.devicePixelRatio;
+        const headerBackingWidth = (this.headerColumnsWidth + SheetView.DIVIDER_THICKNESS / 2) * this.devicePixelRatio;
 
         ctx.save();
         ctx.beginPath();
@@ -508,7 +549,7 @@ class SheetView {
         ctx.fillStyle = 'rgba(255, 255, 255, 1)';
         ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
 
-        ctx.translate(this.headerColumn.width - this.scrollOffset.width, this.headerRow.height - this.scrollOffset.height);
+        ctx.translate(this.headerColumnsWidth - this.scrollOffset.width, this.headerRowsHeight - this.scrollOffset.height);
 
         this.#drawColumnBackgrounds(ctx);
         this.#drawCells(ctx);
@@ -522,11 +563,11 @@ class SheetView {
         ctx.save();
 
         ctx.scale(this.devicePixelRatio, this.devicePixelRatio);
-        this.#drawHeaderRow(ctx);
-        this.#drawHeaderColumn(ctx);
+        this.#drawHeaderRows(ctx);
+        this.#drawHeaderColumns(ctx);
         
         // Just splat a rect over the top left corner.
-        const cornerRect = new Rect(new Point(0, 0), new Size(this.headerColumn.width, this.headerRow.height));
+        const cornerRect = new Rect(new Point(0, 0), new Size(this.headerColumnsWidth, this.headerRowsHeight));
         ctx.fillStyle = 'rgba(255, 255, 255, 1)';
         ctx.fillRect(cornerRect.x, cornerRect.y, cornerRect.width, cornerRect.height);
 
@@ -538,89 +579,105 @@ class SheetView {
         ctx.strokeStyle = 'rgba(220, 220, 220, 1)';
         ctx.lineWidth = SheetView.DIVIDER_THICKNESS;
         ctx.beginPath();
-        ctx.moveTo(0, this.headerRow.height);
-        ctx.lineTo(this.canvasSize.width, this.headerRow.height);
+        ctx.moveTo(0, this.headerRowsHeight);
+        ctx.lineTo(this.canvasSize.width, this.headerRowsHeight);
         ctx.stroke();
 
         ctx.beginPath();
-        ctx.moveTo(this.headerColumn.width, 0);
-        ctx.lineTo(this.headerColumn.width, this.canvasSize.height);
+        ctx.moveTo(this.headerColumnsWidth, 0);
+        ctx.lineTo(this.headerColumnsWidth, this.canvasSize.height);
         ctx.stroke();
 
         ctx.restore();
     }
 
-    #drawHeaderRow(ctx)
+    #drawHeaderRows(ctx)
     {
-        let currX = this.headerColumn.width - this.scrollOffset.width;
-        const rowHeight = this.headerRow.height;
-
-        const headerRect = new Rect(new Point(0, 0), new Size(this.canvasSize.width, rowHeight));
-        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-        ctx.fillRect(headerRect.x, headerRect.y, headerRect.width, headerRect.height);
-
+        let currX = this.headerColumnsWidth - this.scrollOffset.width;
+        let currY = 0;
         const gridPath = new Path2D();
+        
+        for (let rowIndex = 0; rowIndex < this.headerRows.length; ++rowIndex) {
+            const row = this.headerRows[rowIndex];
+            const rowHeight = row.height;
 
-        for (let colIndex = 0; colIndex < this.columns.length; ++colIndex) {
-            const col = this.columns[colIndex];
+            const headerRect = new Rect(new Point(0, currY), new Size(this.canvasSize.width, rowHeight));
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+            ctx.fillRect(headerRect.x, headerRect.y, headerRect.width, headerRect.height);
 
-            gridPath.moveTo(currX, 0);
-            gridPath.lineTo(currX, rowHeight);
+            for (let colIndex = 0; colIndex < this.columns.length; ++colIndex) {
+                const col = this.columns[colIndex];
+
+                gridPath.moveTo(currX, 0);
+                gridPath.lineTo(currX, rowHeight);
             
-            ctx.save();
-            
-            const cellSize = new Size(col.width, rowHeight);
-            const cellRect = new Rect(new Point(currX, rowHeight), cellSize);
+                ctx.save();
 
-            ctx.translate(cellRect.x, cellRect.y);
-            const clipPath = new Path2D();
-            clipPath.rect(0, -cellRect.height, cellRect.width, cellRect.height);
-            ctx.clip(clipPath, 'evenodd');
+                const cellSize = new Size(col.width, rowHeight);
+                const cellRect = new Rect(new Point(currX, rowHeight), cellSize);
 
-            const cell = this.headerRowCells[colIndex];
-            cell.draw(ctx, cellSize);
+                ctx.translate(cellRect.x, cellRect.y);
+                const clipPath = new Path2D();
+                clipPath.rect(0, -cellRect.height, cellRect.width, cellRect.height);
+                ctx.clip(clipPath, 'evenodd');
 
-            ctx.restore();
+                const cell = this.headerRowCells[rowIndex][colIndex];
+                cell.draw(ctx, cellSize);
 
-            currX += col.width;
+                ctx.restore();
+
+                currX += col.width;
+            }
+
+            currY += row.height;
         }
 
         this.#strokeGridPath(ctx, gridPath);
     }
 
-    #drawHeaderColumn(ctx)
+    #drawHeaderColumns(ctx)
     {
-        let currY = this.headerRow.height - this.scrollOffset.height;
-        const columnWidth = this.headerColumn.width;
-
-        const headerRect = new Rect(new Point(0, 0), new Size(columnWidth, this.canvasSize.height));
-        ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-        ctx.fillRect(headerRect.x, headerRect.y, headerRect.width, headerRect.height);
-
+        let currX = 0;
         const gridPath = new Path2D();
 
-        for (let rowIndex = 0; rowIndex < this.rows.length; ++rowIndex) {
-            const row = this.rows[rowIndex];
+        for (let colIndex = 0; colIndex < this.headerColumns.length; ++colIndex) {
+            const col = this.headerColumns[colIndex];
+            const columnWidth = col.width;
 
-            gridPath.moveTo(0, currY);
-            gridPath.lineTo(columnWidth, currY);
+            let currY = this.headerRowsHeight - this.scrollOffset.height;
+
+            const headerRect = new Rect(new Point(currX, 0), new Size(columnWidth, this.canvasSize.height));
+            ctx.fillStyle = 'rgba(255, 255, 255, 1)';
+            ctx.fillRect(headerRect.x, headerRect.y, headerRect.width, headerRect.height);
+
+            for (let rowIndex = 0; rowIndex < this.rows.length; ++rowIndex) {
+                const row = this.rows[rowIndex];
+
+                gridPath.moveTo(currX, currY);
+                gridPath.lineTo(currX + columnWidth, currY);
             
-            ctx.save();
+                ctx.save();
             
-            const cellSize = new Size(columnWidth, row.height);
-            const cellRect = new Rect(new Point(0, currY), cellSize);
+                const cellSize = new Size(columnWidth, row.height);
+                const cellRect = new Rect(new Point(currX, currY), cellSize);
 
-            ctx.translate(cellRect.x, cellRect.y);
-            const clipPath = new Path2D();
-            clipPath.rect(0, -cellRect.height, cellRect.width, cellRect.height);
-            ctx.clip(clipPath, 'evenodd');
+                ctx.translate(cellRect.x, cellRect.y);
+                const clipPath = new Path2D();
+                clipPath.rect(0, -cellRect.height, cellRect.width, cellRect.height);
+                ctx.clip(clipPath, 'evenodd');
 
-            const cell = this.headerColumnCells[rowIndex];
-            cell.draw(ctx, cellSize);
+                const cell = this.headerColumnCells[colIndex][rowIndex];
+                cell.draw(ctx, cellSize);
             
-            ctx.restore();
+                ctx.restore();
 
-            currY += row.height;
+                currY += row.height;
+            }
+
+            currX += col.width;
+
+            gridPath.moveTo(currX, this.headerRowsHeight - this.scrollOffset.height);
+            gridPath.lineTo(currX, currY);
         }
 
         this.#strokeGridPath(ctx, gridPath);
@@ -747,6 +804,8 @@ class SheetsStage extends Stage {
             console.error(`Failed to fetch JSON`);
         
         const jsonData = await response.json();
+        this.headerColumns = jsonData['header_columns'];
+        this.headerRows = jsonData['header_rows'];
         this.columns = jsonData.columns;
         this.plantList = jsonData.houseplants;
 

@@ -1,4 +1,31 @@
 {
+  "header_columns": [
+    {
+      "key": "id",
+      "width": "36",
+      "type": "text",
+      "fontSize": "16px",
+      "alignment": "right"
+    },
+    {
+      "key": "species_summary",
+      "width": "36",
+      "type": "text",
+      "fontSize": "16px",
+      "textStyle": "bold",
+      "alignment": "center",
+      "rotation": 270
+    }
+  ],
+  "header_rows": [
+    {
+      "key": "id",
+      "height": "36",
+      "type": "text",
+      "fontSize": "16px",
+      "alignment": "center"
+    }
+  ],
   "columns": [
     {
       "key": "common_name",
