@@ -173,7 +173,7 @@ class TextDrawingSheetCell {
     textDrawingLocation(ctx, cellSize, textMetrics, lineCount = 1)
     {
         const textHeight = lineCount * (textMetrics.fontBoundingBoxAscent + textMetrics.fontBoundingBoxDescent);
-        const yOffset = (cellSize.height - SheetCell.CELL_PADDING * 2 - textHeight) / 2 - textMetrics.fontBoundingBoxDescent;
+        const yOffset = (cellSize.height - SheetCell.CELL_PADDING * 2 - textHeight) / 2 + textMetrics.fontBoundingBoxDescent;
         
         let xOffset = SheetCell.CELL_PADDING;
         switch (this.alignment) {
@@ -215,7 +215,8 @@ class ImageSheetCell {
 
     draw(ctx, cellSize)
     {
-        const insetRect = new Rect(new Point(0, 0), cellSize).inflatedBy(new Size(-SheetCell.CELL_PADDING, -SheetCell.CELL_PADDING));
+        const imagePadding = 1;
+        const insetRect = new Rect(new Point(0, 0), cellSize).inflatedBy(new Size(-imagePadding, -imagePadding));
 
         const destRect = GeometryHelpers.containRect(
             new Rect(new Point(0, 0), new Size(this.image.width, this.image.height)),
@@ -333,7 +334,7 @@ class SheetView {
             totalWidth += column.width;
         }
 
-        const rowHeight = 150;
+        const rowHeight = 120;
         let rowLabel = '1';
         this.rows = [];
         for (let plantInfo of this.stage.plantList) {
@@ -343,8 +344,8 @@ class SheetView {
             totalHeight += row.height;
         }
         
-        const headerRowHeight = 50;
-        const headerColumnWidth = 50;
+        const headerRowHeight = 36;
+        const headerColumnWidth = 36;
         this.headerRow = new Row('', headerRowHeight, 'rgba(0, 0, 100, 0)', TextSheetCell);
         this.headerColumn = new Column('', headerColumnWidth, 'rgba(0, 0, 100, 0)', TextSheetCell);
         totalWidth += this.headerColumn.width;
@@ -417,7 +418,7 @@ class SheetView {
 
         this.headerColumnCells = new Array(rowCount);
         for (let rowIndex = 0; rowIndex < rowCount; ++rowIndex) {
-            const cell = new TextSheetCell((rowIndex + 1).toString(), this.stage.columns[0].fontSize, 'bold');
+            const cell = new TextSheetCell((rowIndex + 1).toString(), this.stage.columns[0].fontSize, 'bold', 'right');
             this.headerColumnCells[rowIndex] = cell;
         }
     }

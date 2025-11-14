@@ -5,7 +5,7 @@
       "title": "Name",
       "width": "250",
       "type": "text",
-      "fontSize": "18px",
+      "fontSize": "16px",
       "alignment": "center",
       "wraps": "true"
     },
@@ -14,7 +14,7 @@
       "title": "Scientific Name",
       "width": "200",
       "type": "text",
-      "fontSize": "18px",
+      "fontSize": "16px",
       "textStyle": "italic",
       "alignment": "left",
       "wraps": "true"
@@ -30,15 +30,15 @@
       "title": "📏 Height",
       "width": "120",
       "type": "text",
-      "fontSize": "18px",
+      "fontSize": "16px",
       "alignment": "right"
     },
     {
       "key": "price",
-      "title": "Price",
+      "title": "💲Price",
       "width": "100",
       "type": "currency",
-      "fontSize": "18px",
+      "fontSize": "16px",
       "alignment": "right"
     },
     {
@@ -46,28 +46,28 @@
       "title": "☀️ Location",
       "width": "220",
       "type": "text",
-      "fontSize": "18px"
+      "fontSize": "16px"
     },
     {
       "key": "ease_of_care",
       "title": "Care",
       "width": "120",
       "type": "text",
-      "fontSize": "18px"
+      "fontSize": "16px"
     },
     {
       "key": "watering",
-      "title": "Watering ",
+      "title": "💦 Watering ",
       "width": "140",
       "type": "text",
-      "fontSize": "18px"
+      "fontSize": "16px"
     },
     {
       "key": "soil_type",
       "title": "Soil Type",
       "width": "200",
       "type": "text",
-      "fontSize": "18px",
+      "fontSize": "16px",
       "wraps": "true"
     },
     {
@@ -75,7 +75,7 @@
       "title": "🐕 Pet Toxicity",
       "width": "200",
       "type": "text",
-      "fontSize": "18px",
+      "fontSize": "16px",
       "wraps": "true"
     }
   ],
