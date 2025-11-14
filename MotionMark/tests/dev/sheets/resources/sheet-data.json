@@ -27,7 +27,7 @@
     },
     {
       "key": "height_inches",
-      "title": "📏 Height (inches)",
+      "title": "📏 Height",
       "width": "120",
       "type": "text",
       "fontSize": "18px",

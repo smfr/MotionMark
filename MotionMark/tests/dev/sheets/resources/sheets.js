@@ -118,7 +118,7 @@ class TextDrawingSheetCell {
     {
         ctx.font = `${this.textStyle} ${this.fontSize} Arial`;
         ctx.fillStyle = 'black';
-        
+
         const availableWidth = cellSize.width - 2 * SheetCell.CELL_PADDING;
         const metrics = ctx.measureText(text);
         let location = this.textDrawingLocation(ctx, cellSize, metrics);
@@ -178,12 +178,15 @@ class TextDrawingSheetCell {
         let xOffset = SheetCell.CELL_PADDING;
         switch (this.alignment) {
         case 'left':
+            ctx.textAlign = 'left';
             break;
         case 'right':
-            xOffset = cellSize.width - SheetCell.CELL_PADDING - textMetrics.width;
+            xOffset = cellSize.width - SheetCell.CELL_PADDING;
+            ctx.textAlign = 'right';
             break;
         case 'center':
-            xOffset = ((cellSize.width - SheetCell.CELL_PADDING * 2) - textMetrics.width) / 2;
+            xOffset = cellSize.width / 2;
+            ctx.textAlign = 'center';
             break;
         }
         
@@ -253,6 +256,7 @@ class CurrencySheetCell extends TextDrawingSheetCell {
     textDrawingLocation(ctx, cellSize, textMetrics)
     {
         let location = super.textDrawingLocation(ctx, cellSize, textMetrics);
+        ctx.textAlign = 'left';
 
         let leadingWidth = 0;
         const currency = '$';
@@ -445,30 +449,30 @@ class SheetView {
         if (flipY)
             this.scrollDelta.height = -this.scrollDelta.height;
 
+        const oldOffset = this.scrollOffset;
         this.scrollOffset = newOffset;
 
         const ctx = this.canvas.getContext('2d');
         
-        const backingScrollX = this.scrollDelta.width * this.devicePixelRatio;
-        const backingScrollY = this.scrollDelta.height * this.devicePixelRatio;
+        const backingScrollX = (this.scrollOffset.width - oldOffset.width) * this.devicePixelRatio;
+        const backingScrollY = (this.scrollOffset.height - oldOffset.height) * this.devicePixelRatio;
         
         ctx.drawImage(this.canvas, -backingScrollX, -backingScrollY);
 
         const headerBackingHeight = (this.headerRow.height + SheetView.DIVIDER_THICKNESS / 2) * this.devicePixelRatio;
         const headerBackingWidth = (this.headerColumn.width + SheetView.DIVIDER_THICKNESS / 2) * this.devicePixelRatio;
-        const overdraw = 1;
 
         ctx.save();
         ctx.beginPath();
         if (backingScrollX > 0)
             ctx.rect(this.backingSize.width - backingScrollX, 0, backingScrollX, this.backingSize.height);
         else if (backingScrollX < 0)
-            ctx.rect(headerBackingWidth, 0, -backingScrollX + overdraw, this.backingSize.height);
-
+            ctx.rect(headerBackingWidth, 0, -backingScrollX, this.backingSize.height);
+        
         if (backingScrollY > 0)
             ctx.rect(0, this.backingSize.height - backingScrollY, this.backingSize.width, backingScrollY);
         else if (backingScrollY < 0)
-            ctx.rect(0, headerBackingHeight, this.backingSize.width, -backingScrollY + overdraw);
+            ctx.rect(0, headerBackingHeight, this.backingSize.width, -backingScrollY);
 
         ctx.closePath();
         ctx.clip('nonzero');
@@ -489,7 +493,7 @@ class SheetView {
         ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
 
         ctx.translate(this.headerColumn.width - this.scrollOffset.width, this.headerRow.height - this.scrollOffset.height);
-        
+
         this.#drawColumnBackgrounds(ctx);
         this.#drawCells(ctx);
         this.#drawGrid(ctx);
@@ -811,7 +815,7 @@ class FakeController {
     shouldStop()
     {
         const now = new Date();
-        return (now - this.startTime) > 8000;
+        return (now - this.startTime) > 5000;
     }
     
     results()
