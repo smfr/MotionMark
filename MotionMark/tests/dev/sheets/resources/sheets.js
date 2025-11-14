@@ -280,7 +280,9 @@ class SheetView {
     constructor(stage)
     {
         this.stage = stage;
-        
+
+        this.devicePixelRatio = 2;
+
         this.container = document.createElement('section');
         this.container.className = 'sheet';
         
@@ -352,9 +354,8 @@ class SheetView {
 
         this.#createCells(this.rows.length, this.columns.length);
 
-        this.devicePixelRatio = 2;
         this.canvasSize = integralSize;
-        this.backingSize = new Size(integralSize.width * devicePixelRatio, integralSize.height * devicePixelRatio);
+        this.backingSize = new Size(integralSize.width * this.devicePixelRatio, integralSize.height * this.devicePixelRatio);
         
         this.canvas.width = this.backingSize.width;
         this.canvas.height = this.backingSize.height;
