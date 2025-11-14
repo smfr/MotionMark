@@ -116,7 +116,7 @@ class TextDrawingSheetCell {
     
     drawText(ctx, cellSize, text)
     {
-        ctx.font = `${this.fontSize} Arial ${this.textStyle}`;
+        ctx.font = `${this.textStyle} ${this.fontSize} Arial`;
         ctx.fillStyle = 'black';
         
         const availableWidth = cellSize.width - 2 * SheetCell.CELL_PADDING;
@@ -286,6 +286,8 @@ class SheetView {
         this.stage.element.appendChild(this.container);
         
         this.#prepare();
+
+        this.scrollDelta = new Size(2, 2);
     }
     
     remove()
@@ -298,9 +300,10 @@ class SheetView {
         const size = this.measureSize();
         const integralSize = new Size(Math.floor(size.width), Math.floor(size.height));
         
-        this.scrollOffset = new Size(300, 0);
+        this.scrollOffset = new Size(0, 0);
 
-        // this.columns = this._randomizedColumns(size.width);
+        let totalWidth = 0;
+        let totalHeight = 0;
 
         this.columns = [];
 
@@ -310,9 +313,9 @@ class SheetView {
 
             const column = new Column(colInfo.title, parseFloat(colInfo.width), color, this.#cellClassFromColumnType(colInfo.type));
             this.columns.push(column);
+            totalWidth += column.width;
         }
 
-        //this.rows = this._randomizedRows(size.height);
         const rowHeight = 150;
         let rowLabel = '1';
         this.rows = [];
@@ -320,25 +323,31 @@ class SheetView {
             const color = 'rgba(0, 0, 0, 0)';
             const row = new Row(rowLabel++, rowHeight, color);
             this.rows.push(row);
+            totalHeight += row.height;
         }
         
         const headerRowHeight = 50;
         const headerColumnWidth = 50;
         this.headerRow = new Row('', headerRowHeight, 'rgba(0, 0, 100, 0)', TextSheetCell);
         this.headerColumn = new Column('', headerColumnWidth, 'rgba(0, 0, 100, 0)', TextSheetCell);
+        totalWidth += this.headerColumn.width;
+        totalHeight += this.headerRow.height;
+        
+        this.contentsSize = new Size(totalWidth, totalHeight);
 
         this.#createCells(this.rows.length, this.columns.length);
 
         this.devicePixelRatio = 2;
-        this.canvasSize = new Size(integralSize.width * devicePixelRatio, integralSize.height * devicePixelRatio);
+        this.canvasSize = integralSize;
+        this.backingSize = new Size(integralSize.width * devicePixelRatio, integralSize.height * devicePixelRatio);
         
-        this.canvas.width = this.canvasSize.width;
-        this.canvas.height = this.canvasSize.height;
+        this.canvas.width = this.backingSize.width;
+        this.canvas.height = this.backingSize.height;
         
         const ctx = this.canvas.getContext('2d');
 
         ctx.fillStyle = 'rgba(255, 255, 255, 1)';
-        ctx.fillRect(0, 0, this.canvasSize.width, this.canvasSize.height);
+        ctx.fillRect(0, 0, this.backingSize.width, this.backingSize.height);
 
         this.#drawBodyCells(ctx);
         this.#drawHeaders(ctx);
@@ -402,33 +411,64 @@ class SheetView {
 
     animate()
     {
-        //this.#scrollSheet();
+        this.#scrollSheet();
     }
 
     #scrollSheet()
     {
-        const scrollXDelta = 1;
-        const scrollYDelta = 2;
-        this.scrollOffset = new Size(this.scrollOffset.width + scrollXDelta, this.scrollOffset.height + scrollYDelta);
+        const newOffset = new Size(this.scrollOffset.width + this.scrollDelta.width, this.scrollOffset.height + this.scrollDelta.height);
+
+        const rightEdge = this.contentsSize.width - newOffset.width;
+        const bottomEdge = this.contentsSize.height - newOffset.height;
+
+        let flipX = false;
+        let flipY = false;
+
+        if (newOffset.width < 0) {
+            flipX = true;
+            newOffset.width = 0;
+        } else if (rightEdge < this.canvasSize.width) {
+            flipX = true;
+            newOffset.width = this.contentsSize.width - this.canvasSize.width;
+        }
         
+        if (newOffset.height < 0) {
+            flipY = true;
+            newOffset.height = 0;
+        } else if (bottomEdge < this.canvasSize.height) {
+            flipY = true;
+            newOffset.height = this.contentsSize.height - this.canvasSize.height;
+        }
+        
+        if (flipX)
+            this.scrollDelta.width = -this.scrollDelta.width;
+        if (flipY)
+            this.scrollDelta.height = -this.scrollDelta.height;
+
+        this.scrollOffset = newOffset;
+
         const ctx = this.canvas.getContext('2d');
         
-        const backingScrollX = scrollXDelta * this.devicePixelRatio;
-        const backingScrollY = scrollYDelta * this.devicePixelRatio;
+        const backingScrollX = this.scrollDelta.width * this.devicePixelRatio;
+        const backingScrollY = this.scrollDelta.height * this.devicePixelRatio;
         
         ctx.drawImage(this.canvas, -backingScrollX, -backingScrollY);
+
+        const headerBackingHeight = (this.headerRow.height + SheetView.DIVIDER_THICKNESS / 2) * this.devicePixelRatio;
+        const headerBackingWidth = (this.headerColumn.width + SheetView.DIVIDER_THICKNESS / 2) * this.devicePixelRatio;
+        const overdraw = 1;
 
         ctx.save();
         ctx.beginPath();
         if (backingScrollX > 0)
-            ctx.rect(this.canvasSize.width - backingScrollX, 0, backingScrollX, this.canvasSize.height);
+            ctx.rect(this.backingSize.width - backingScrollX, 0, backingScrollX, this.backingSize.height);
         else if (backingScrollX < 0)
-            ctx.rect(0, 0, backingScrollX, this.canvasSize.height);
+            ctx.rect(headerBackingWidth, 0, -backingScrollX + overdraw, this.backingSize.height);
 
         if (backingScrollY > 0)
-            ctx.rect(0, this.canvasSize.height - backingScrollY, this.canvasSize.width, backingScrollY);
+            ctx.rect(0, this.backingSize.height - backingScrollY, this.backingSize.width, backingScrollY);
         else if (backingScrollY < 0)
-            ctx.rect(0, 0, this.canvasSize.width, backingScrollY);
+            ctx.rect(0, headerBackingHeight, this.backingSize.width, -backingScrollY + overdraw);
 
         ctx.closePath();
         ctx.clip('nonzero');
@@ -568,13 +608,15 @@ class SheetView {
     
     #drawColumnBackgrounds(ctx)
     {
-        const maxX = this.canvasSize.width;
-        const maxY = this.canvasSize.height;
+        const minX = 0;
+        const maxX = this.contentsSize.width;
+        const minY = 0;
+        const maxY = this.contentsSize.height
 
-        let currX = 0;
+        let currX = minX;
 
         for (let column of this.columns) {
-            const columnRect = new Rect(new Point(currX, 0), new Size(column.width, maxX));
+            const columnRect = new Rect(new Point(currX, minY), new Size(column.width, maxY - minY));
             ctx.fillStyle = column.fillColor;
             ctx.fillRect(columnRect.x, columnRect.y, columnRect.width, columnRect.height);
 
@@ -584,19 +626,20 @@ class SheetView {
 
     #drawGrid(ctx)
     {
-        const maxX = this.canvasSize.width;
-        const maxY = this.canvasSize.height;
+        const minX = 0;
+        const maxX = this.contentsSize.width;
+        const minY = 0;
+        const maxY = this.contentsSize.height
 
-        let currX = 0;
+        let currX = minX;
 
         ctx.save();
-        
-        // FIXME: We can cache this path.
+
         const gridPath = new Path2D();
 
         for (let column of this.columns) {
-            gridPath.moveTo(currX, 0);
-            gridPath.lineTo(currX, maxX);
+            gridPath.moveTo(currX, minY);
+            gridPath.lineTo(currX, maxY);
             currX += column.width;
         }
         
@@ -661,53 +704,6 @@ class SheetView {
                 currX += col.width;
             }
         }
-    }
-    
-    _randomizedColumns(availableSpace)
-    {
-        const minColumnWidth = Math.min(30, availableSpace / 10);
-        const maxColumnWidth = Math.max(200, availableSpace / 5);
-
-        const columnCoverageWidth = 2 * availableSpace;
-
-        let totalWidth = 0;
-        const columns = [];
-        let label = 'A';
-
-        // We let the total width exceed availableSpace, so the last column clips.
-        while (totalWidth < columnCoverageWidth) {
-            const width = Stage.randomInt(minColumnWidth, maxColumnWidth);
-            const colorAlpha = 0.2;
-            const color = Stage.randomRGBColor(colorAlpha);
-            const column = new Column(label++, width, color);
-            columns.push(column);
-            totalWidth += width;
-        }
-
-        return columns;
-    }
-
-    _randomizedRows(availableSpace)
-    {
-        const numRows = 8;
-        const rowCoverageHeight = 2 * availableSpace;
-        const rowHeight = Math.floor(this.canvas.height / numRows);
-
-        let totalHeight = 0;
-        const rows = [];
-        let label = '1';
-
-        // We let the total width exceed availableSpace, so the last column clips.
-        while (totalHeight < rowCoverageHeight) {
-            const color = 'rgba(0, 0, 0, 0)';
-            const row = new Row(label++, rowHeight, color);
-
-            // FIXME: Make some rows be taller.
-            rows.push(row);
-            totalHeight += rowHeight;
-        }
-
-        return rows;
     }
 }
 
@@ -815,7 +811,7 @@ class FakeController {
     shouldStop()
     {
         const now = new Date();
-        return (now - this.startTime) > 50000;
+        return (now - this.startTime) > 8000;
     }
     
     results()

@@ -3,7 +3,7 @@
     {
       "key": "common_name",
       "title": "Name",
-      "width": "300",
+      "width": "250",
       "type": "text",
       "fontSize": "18px",
       "alignment": "center",
@@ -22,7 +22,7 @@
     {
       "key": "image",
       "title": "📷 Picture",
-      "width": "400",
+      "width": "300",
       "type": "image"
     },
     {
@@ -312,6 +312,19 @@
       "ease_of_care": "Medium",
       "watering": "Regular",
       "soil_type": "Well-draining potting mix with peat moss",
+      "pet_toxicity": "Mildly toxic to cats and dogs"
+    },
+    {
+      "id": 19,
+      "image": "resources/images/sansevieria.jpg",
+      "species_name": "Sansevieria trifasciata",
+      "common_name": "Snake Plant",
+      "height_inches": 24,
+      "price": 32.99,
+      "location": "Low to bright indirect light",
+      "ease_of_care": "Easy",
+      "watering": "Occasional",
+      "soil_type": "Well-draining cactus/succulent mix",
       "pet_toxicity": "Mildly toxic to cats and dogs"
     }
   ]
