@@ -291,7 +291,20 @@ class SheetView {
         
         this.#prepare();
 
-        this.scrollDelta = new Size(2, 2);
+        switch (Stage.randomInt(0, 3)) {
+        case 0:
+            this.scrollDelta = new Size(2, 2);
+            break;
+        case 1:
+            this.scrollDelta = new Size(-2, 2);
+            break;
+        case 2:
+            this.scrollDelta = new Size(2, -2);
+            break;
+        case 3:
+            this.scrollDelta = new Size(-2, -2);
+            break;
+        }
     }
     
     remove()
@@ -303,8 +316,6 @@ class SheetView {
     {
         const size = this.measureSize();
         const integralSize = new Size(Math.floor(size.width), Math.floor(size.height));
-        
-        this.scrollOffset = new Size(0, 0);
 
         let totalWidth = 0;
         let totalHeight = 0;
@@ -347,9 +358,12 @@ class SheetView {
         
         this.canvas.width = this.backingSize.width;
         this.canvas.height = this.backingSize.height;
-        
-        const ctx = this.canvas.getContext('2d');
 
+        const minScrollOffset = new Size(0, 0);
+        const maxScrollOffset = new Size(this.contentsSize.width - this.canvasSize.width, this.contentsSize.height - this.canvasSize.height);
+        this.scrollOffset = new Size(Stage.randomInt(minScrollOffset.width, maxScrollOffset.width), Stage.randomInt(minScrollOffset.height, maxScrollOffset.height));
+
+        const ctx = this.canvas.getContext('2d');
         ctx.fillStyle = 'rgba(255, 255, 255, 1)';
         ctx.fillRect(0, 0, this.backingSize.width, this.backingSize.height);
 
