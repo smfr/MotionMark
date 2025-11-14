@@ -124,17 +124,45 @@ class TextDrawingSheetCell {
         let location = this.textDrawingLocation(ctx, cellSize, metrics);
 
         if (metrics.width > availableWidth && this.wrapText) {
-            const words = text.split(' ');
-            const textHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
-            if (words.length > 1) {
-                location = this.textDrawingLocation(ctx, cellSize, metrics, words.length);
-                
-                let yOffset = location.y;
-                for (let word of words) {
-                    
-                    ctx.fillText(word, location.x, location.y + yOffset);
-                    yOffset += textHeight;
+            if (text.indexOf(' ') > 0) {
+                const textHeight = metrics.fontBoundingBoxAscent + metrics.fontBoundingBoxDescent;
+            
+                // Find line breaks and get line count.
+                let currLineStart = 0;
+                const lineStartOffsets = [currLineStart];
+                let currOffset = 0;
+
+                let haveMoreText = true;
+                let previousBreakOpportunity = 0;
+                while (haveMoreText) {
+                    let nextBreakOpportunity = text.indexOf(' ', currOffset);
+                    if (nextBreakOpportunity === -1) {
+                        nextBreakOpportunity = text.length;
+                        haveMoreText = false;
+                    }
+
+                    const lineString = text.substring(currLineStart, nextBreakOpportunity);
+                    const lineWidth = ctx.measureText(lineString).width;
+                    currOffset = nextBreakOpportunity + 1;
+                    if (lineWidth > availableWidth) {
+                        currLineStart = previousBreakOpportunity + 1;
+                        lineStartOffsets.push(currLineStart);
+                    }
+                    previousBreakOpportunity = nextBreakOpportunity;
                 }
+                
+                const lineCount = lineStartOffsets.length;
+                const totalHeight = lineCount * textHeight;
+                
+                location = new Point(location.x, (cellSize.height - totalHeight) / 2 - cellSize.height + metrics.fontBoundingBoxAscent);
+            
+                // Draw the text
+                for (let lineIndex = 0; lineIndex < lineStartOffsets.length; ++lineIndex) {
+                    const lineStart = lineStartOffsets[lineIndex];
+                    const lineLength = (lineIndex < lineStartOffsets.length - 1) ? lineStartOffsets[lineIndex + 1] - lineStart : text.length - lineStart;
+                    ctx.fillText(text.substring(lineStart, lineStart + lineLength), location.x, location.y + lineIndex * textHeight);
+                }
+             
                 return;
             }
         }
@@ -191,6 +219,7 @@ class ImageSheetCell {
             insetRect
         );
 
+        ctx.imageSmoothingQuality = 'medium';
         ctx.drawImage(this.image, destRect.x, -cellSize.height + destRect.y, destRect.width, destRect.height);
     }
 }
@@ -269,10 +298,10 @@ class SheetView {
         const size = this.measureSize();
         const integralSize = new Size(Math.floor(size.width), Math.floor(size.height));
         
-        this.scrollOffset = new Size(0, 0);
+        this.scrollOffset = new Size(300, 0);
 
         // this.columns = this._randomizedColumns(size.width);
-        
+
         this.columns = [];
 
         for (let colInfo of this.stage.columns) {
@@ -331,7 +360,7 @@ class SheetView {
     
     #createCells(rowCount, columnCount)
     {
-        this.cells = Array.from({ length: rowCount }, () => new Array(columnCount));
+        this.cells = Array.from({ length: columnCount }, () => new Array(rowCount));
 
         for (let colIndex = 0; colIndex < columnCount; ++colIndex) {
             const columnData = this.stage.columns[colIndex];
@@ -354,13 +383,13 @@ class SheetView {
         this.headerRowCells = new Array(columnCount);
         for (let colIndex = 0; colIndex < columnCount; ++colIndex) {
             const columnData = this.stage.columns[colIndex];
-            const cell = new TextSheetCell(columnData.title, this.stage.columns[0].fontSize);
+            const cell = new TextSheetCell(columnData.title, this.stage.columns[0].fontSize, 'bold');
             this.headerRowCells[colIndex] = cell;
         }
 
         this.headerColumnCells = new Array(rowCount);
         for (let rowIndex = 0; rowIndex < rowCount; ++rowIndex) {
-            const cell = new TextSheetCell((rowIndex + 1).toString(), this.stage.columns[0].fontSize);
+            const cell = new TextSheetCell((rowIndex + 1).toString(), this.stage.columns[0].fontSize, 'bold');
             this.headerColumnCells[rowIndex] = cell;
         }
     }
@@ -373,7 +402,7 @@ class SheetView {
 
     animate()
     {
-        this.#scrollSheet();
+        //this.#scrollSheet();
     }
 
     #scrollSheet()
@@ -421,8 +450,9 @@ class SheetView {
 
         ctx.translate(this.headerColumn.width - this.scrollOffset.width, this.headerRow.height - this.scrollOffset.height);
         
-        this.#drawGrid(ctx);
+        this.#drawColumnBackgrounds(ctx);
         this.#drawCells(ctx);
+        this.#drawGrid(ctx);
 
         ctx.restore();
     }
@@ -526,7 +556,6 @@ class SheetView {
             ctx.clip(clipPath, 'evenodd');
 
             const cell = this.headerColumnCells[rowIndex];
-            console.log(`header cell ${cell} for row ${rowIndex}`)
             cell.draw(ctx, cellSize);
             
             ctx.restore();
@@ -537,6 +566,22 @@ class SheetView {
         this.#strokeGridPath(ctx, gridPath);
     }
     
+    #drawColumnBackgrounds(ctx)
+    {
+        const maxX = this.canvasSize.width;
+        const maxY = this.canvasSize.height;
+
+        let currX = 0;
+
+        for (let column of this.columns) {
+            const columnRect = new Rect(new Point(currX, 0), new Size(column.width, maxX));
+            ctx.fillStyle = column.fillColor;
+            ctx.fillRect(columnRect.x, columnRect.y, columnRect.width, columnRect.height);
+
+            currX += column.width;
+        }
+    }
+
     #drawGrid(ctx)
     {
         const maxX = this.canvasSize.width;
@@ -552,11 +597,6 @@ class SheetView {
         for (let column of this.columns) {
             gridPath.moveTo(currX, 0);
             gridPath.lineTo(currX, maxX);
-
-            const columnRect = new Rect(new Point(currX, 0), new Size(column.width, maxX));
-            ctx.fillStyle = column.fillColor;
-            ctx.fillRect(columnRect.x, columnRect.y, columnRect.width, columnRect.height);
-
             currX += column.width;
         }
         
@@ -775,7 +815,7 @@ class FakeController {
     shouldStop()
     {
         const now = new Date();
-        return (now - this.startTime) > 5000;
+        return (now - this.startTime) > 50000;
     }
     
     results()

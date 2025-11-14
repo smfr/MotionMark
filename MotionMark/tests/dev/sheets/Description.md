@@ -27,6 +27,9 @@ One scroll of the canvas
 Licensing requirements
 ----------------------
 
+Free-to-use images from https://unsplash.com (https://unsplash.com/license)
+No attribution required (but is appreciated)
+
 
 Remaining work
 --------------
