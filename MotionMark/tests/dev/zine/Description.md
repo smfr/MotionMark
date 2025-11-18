@@ -29,7 +29,7 @@ Licensing requirements
 ----------------------
 
 * https://github.com/theleagueof/ostrich-sans/blob/master/Open%20Font%20License.markdown
-
+* https://github.com/theleagueof/linden-hill/blob/master/Open%20Font%20License.markdown
 
 Remaining work
 --------------

@@ -39,8 +39,15 @@
         }
 
         @font-face {
-            font-family: "League Spartan";
-            src: url("resources/fonts/League Spartan/LeagueSpartan-VF.woff2") format("woff2");
+            font-family: "Linden Hill";
+            src: url("resources/fonts/Linden Hill/LindenHill.woff") format("woff2");
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: "Linden Hill";
+            src: url("resources/fonts/Linden Hill/LindenHillItalic.woff") format("woff2");
+            font-style: italic;
         }
 
         #container {
@@ -51,29 +58,47 @@
         #container {
             section.item {
                 position: absolute;
-                font-family: "League Sans", sans-serif;
+                font-family: "Linden Hill", serif;
                 width: 30vw;
-                background-color: color-mix(in srgb, white, transparent 70%);
+                border: 1px solid black;
+                padding: 12px;
+                background-color: color-mix(in srgb, white, transparent 20%);
                 overflow: clip;
             }
                 
             h1.heading {
                 font-weight: 800;
-                font-size: 32pt;
+                font-size: 28pt;
                 margin: 0;
+                text-align: center;
+                
 /*                -webkit-text-stroke: 1px var(--heading-stroke-color);
                 -webkit-text-fill-color: var(--heading-fill-color);
 */                text-decoration: underline;
                 text-decoration-skip-ink: auto;
-                text-decoration-thickness: 2px;
-                text-decoration-style: dotted;
+                text-decoration-thickness: 1px;
                 text-underline-offset: 5px;
-                animation: grow 2s linear alternate infinite;
+                text-rendering: optimizeLegibility;
+                
+                font-variant: small-caps;
+/*                animation: grow 2s linear alternate infinite;*/
             }
             
             .item p {
                 font-size: 14pt;
+/*                max-height: 7lh;*/
                 text-rendering: optimizeLegibility;
+                overflow: hidden;
+                
+                font-variant: discretionary-ligatures;
+
+                //animation: scale 2s alternate infinite linear;
+            }
+            
+            .item p:hover {
+                letter-spacing: -0.0125em;
+                font-kerning: normal;
+                font-variant-ligatures: common-ligatures;
             }
             
             .item p:first-letter {
@@ -82,11 +107,11 @@
                 display: inline-block;
                 line-height: 1;
                 font-family: Georgia; /* FIXME: find a nice florid font */
-                font-size: 3.5em;
+                font-size: 54pt;
                 line-height: 60px;
                 padding-top: 4px;
                 padding-right: 8px;
-                padding-left: 3px;
+                padding-left: 3px;   
             }
             
             .marquee-container {
@@ -144,8 +169,9 @@
         }
 
         #container.picture-wall {
-            perspective: 50vw;
+            perspective: 100vw;
             perspective-origin: center;
+            transform-style: preserve-3d;
             display: grid;
             outline: 1px solid blue;
         }
@@ -153,7 +179,7 @@
         #container.picture-wall .item {
             grid-area: 1/1;
             place-self: start center;
-            transform-origin: top left;
+            transform-origin: top center;
         }
         
         @keyframes marquee {
@@ -162,8 +188,13 @@
         }
         
         @keyframes grow {
-            from { letter-spacing: -1.5px;; }
+            from { letter-spacing: -1.5px; }
             to   { letter-spacing: 2px; }
+        }
+
+        @keyframes scale {
+            from { font-size: 14pt; }
+            to   { font-size: 18pt; }
         }
         
         

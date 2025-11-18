@@ -97,11 +97,13 @@ class Grid2DLayout extends ItemLayout {
     {
         const itemCount = this._container.children.length;
 
-        const aspectRatio = this._stageSize.width / this._stageSize.height;
-
-        const columnCount = Math.ceil(Math.sqrt(itemCount * aspectRatio));
-        const rowCount = Math.ceil(itemCount / columnCount);
+        const stageAspectRatio = this._stageSize.width / this._stageSize.height;
+        const itemAspectRatio = this._itemSize.width / this._itemSize.height;
+        const rowsToColsRatio = stageAspectRatio / itemAspectRatio;
         
+        const columnCount = Math.ceil(Math.sqrt(itemCount / rowsToColsRatio));
+        const rowCount = Math.ceil(itemCount / columnCount);
+
         const cellSize = new Size(this._stageSize.width / columnCount, this._stageSize.height / rowCount);
         const scale = Math.min(cellSize.width / this._itemSize.width, cellSize.height / this._itemSize.height);
         
@@ -121,32 +123,51 @@ class PictureWallLayout3D extends ItemLayout {
     constructor(container, itemSize, stageSize)
     {
         super(container, itemSize, stageSize);
+        this.oneUpFront = true;
         this._container.classList.add('picture-wall');
     }
 
     arrangeItems()
     {
-        const itemCount = this._container.children.length;
-
-        const aspectRatio = this._stageSize.width / this._stageSize.height;
-
-        const columnCount = Math.ceil(Math.sqrt(itemCount * aspectRatio));
-        const rowCount = Math.ceil(itemCount / columnCount);
+        let itemCount = this._container.children.length;
         
+        if (this.oneUpFront && itemCount > 0)
+            --itemCount;
+
+        const stageAspectRatio = this._stageSize.width / this._stageSize.height;
+        const itemAspectRatio = this._itemSize.width / this._itemSize.height;
+        const rowsToColsRatio = stageAspectRatio / itemAspectRatio;
+        
+        const columnCount = Math.ceil(Math.sqrt(itemCount / rowsToColsRatio));
+        const rowCount = Math.ceil(itemCount / columnCount);
+
         const cellSize = new Size(this._stageSize.width / columnCount, this._stageSize.height / rowCount);
         const scale = Math.min(cellSize.width / this._itemSize.width, cellSize.height / this._itemSize.height);
 
         const startAngle = 60;
         const endAngle = -60;
         const angleIncrement = (endAngle - startAngle) / (columnCount - 1);
+        
+        const totalWidth = cellSize.width * columnCount;
+        // Compute a radius such that the totalWidth covers the circumference of the arc between startAngle and endAngle.
+        const radius = totalWidth / (((startAngle - endAngle) / 360) * 2 * Math.PI);
 
-        for (let i = 0; i < this._container.children.length; ++ i) {
+        let startIndex = 0;
+        let offset = 0;
+        if (this.oneUpFront) {
+            startIndex = 1;
+            offset = -1;
+            this._container.children[0].style.transform = `translate(0, ${(this._stageSize.height - this._itemSize.height) / 2}px)`;
+        }
+        
+        for (let i = startIndex; i < this._container.children.length; ++ i) {
+            const indexInGrid = i + offset;
             const child = this._container.children[i];
 
-            const row = Math.floor(i / columnCount);
-            const col = i % columnCount;
+            const row = Math.floor(indexInGrid / columnCount);
+            const col = indexInGrid % columnCount;
 
-            child.style.transform = `translate(0, ${row * cellSize.height}px) rotate3d(0, 1, 0, ${startAngle + angleIncrement * col}deg) translateZ(-50vw) scale(${scale})`;
+            child.style.transform = `translate(0, ${row * cellSize.height}px) rotate3d(0, 1, 0, ${startAngle + angleIncrement * col}deg) translateZ(${-radius}px) scale(${scale})`;
         }
     }
 }
@@ -186,8 +207,9 @@ class ZStackLayout3D extends ItemLayout {
 /* ------------------------------------------------------------ */
 
 class Item {
-    constructor(container)
+    constructor(container, data)
     {
+        this.data = data;
         this.#createElements(container);
     }
     
@@ -204,22 +226,27 @@ class Item {
 
     #createElements(container)
     {
-        const loremIpsum = 'Lorem ipsum dolor sit amet, consectetur adipisicing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.'
-
         this.section = this.#createElement('section', 'item');
-        this.heading = this.#createElement('h1', 'heading', 'Lorem ipsum dolor sit amet');
-        this.bodyText = this.#createElement('p', 'body-text', loremIpsum);
+        
+        const writingMode = this.data['writing-mode'];
+        if (writingMode)
+            this.section.style.writingMode = writingMode;
+
+        this.heading = this.#createElement('h1', 'heading', this.data['chapter-title']);
+        this.bodyText = this.#createElement('p', 'body-text', this.data['paragraph-1']);
         this.marqueeContainer = this.#createElement('div', 'marquee-container');
         
-        const marqeeLine1 = this.#createElement('div', 'line', loremIpsum);
-        const marqeeLine2 = this.#createElement('div', 'line', loremIpsum);
+        /*
+        const marqeeLine1 = this.#createElement('div', 'line', this.data['paragraph-1']);
+        const marqeeLine2 = this.#createElement('div', 'line', this.data['paragraph-1']);
         
         this.#colorizeWords(marqeeLine1);
         this.#colorizeWords(marqeeLine2);
 
         this.marqueeContainer.appendChild(marqeeLine1);
         this.marqueeContainer.appendChild(marqeeLine2);
-        
+        */
+
         this.section.appendChild(this.heading);
         this.section.appendChild(this.bodyText);
         this.section.appendChild(this.marqueeContainer);
@@ -227,12 +254,12 @@ class Item {
         container.appendChild(this.section);
     }
 
-    #createElement(tagName, className, textContent)
+    #createElement(tagName, className, htmlContent)
     {
         const element = document.createElement(tagName);
         element.className = className;
-        if (textContent)
-            element.textContent = textContent;
+        if (htmlContent)
+            element.innerHTML = htmlContent;
         return element;
     }
 
@@ -269,10 +296,17 @@ class NewsletterStage extends Stage {
     {
         await super.initialize(benchmark, options);
 
+        const response = await fetch('resources/text-source.json');
+        if (!response.ok)
+            console.error(`Failed to fetch JSON`);
+
+        const jsonData = await response.json();
+        this.textData = jsonData.data;
+
         const stageRect = this.element.getBoundingClientRect();
         this._stageRect = new Rect(Point.zero, new Size(stageRect.width, stageRect.height));
         
-        const item = new Item(this.container);
+        const item = new Item(this.container, this.textData[0]);
         const approximateItemSize = item.measureSize()
         item.remove();
 
@@ -293,7 +327,8 @@ class NewsletterStage extends Stage {
         } else if (newComplexity > this._complexity) {
             
             for (let itemCount = this._complexity; itemCount < newComplexity; ++itemCount) {
-                const item = new Item(this.container);
+                const dataIndex = itemCount % this.textData.length;
+                const item = new Item(this.container, this.textData[dataIndex]);
                 this._items.push(item);
             }
         }
@@ -335,7 +370,7 @@ window.benchmarkClass = NewsletterBenchmark;
 class FakeController {
     constructor()
     {
-        this.initialComplexity = 20;
+        this.initialComplexity = 1;
         this.startTime = new Date;
     }
 
