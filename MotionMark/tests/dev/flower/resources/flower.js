@@ -424,7 +424,7 @@ class FlowerStage extends Stage {
     {
         super();
 
-//        Pseudo.randomSeed = Date.now();
+       Pseudo.randomSeed = Date.now();
 
         this._complexity = 0;
         this._items = [];
@@ -469,11 +469,11 @@ class FlowerBenchmark extends Benchmark {
         super(new FlowerStage(), options);
         
         setTimeout(() => {
-            this.stage.tune(10);
+            this.stage.tune(2);
         }, 500);
 
         setTimeout(() => {
-            this.stage.tune(-7);
+            this.stage.tune(-0);
         }, 1000);
     }
 }
