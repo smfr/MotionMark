@@ -445,7 +445,7 @@ class FlowerStage extends Stage {
         if (countDelta == 0)
             return;
 
-        console.log(`tune ${countDelta} - new complexity ${this._complexity += countDelta}`);
+        console.log(`tune ${countDelta} - new complexity ${this._complexity + countDelta}`);
         this.layout.arrangeItems(countDelta);
         this._complexity += countDelta;
     }
