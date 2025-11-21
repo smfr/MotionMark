@@ -27,106 +27,33 @@
 <head>
     <meta charset="utf-8">
     <link rel="stylesheet" type="text/css" href="../../resources/stage.css">
+    <link rel="stylesheet" type="text/css" href="resources/chess.css">
     <style>
         :root {
-            --cell-gap: 0px;
-            --anim-value: 123;
-            
-            --palette-color-1: #04151F;
-            --palette-color-2: #183A37;
-            --palette-color-3: #EFD6AC;
-            --palette-color-4: #C44900;
-            --palette-color-5: #432534;
-        }
-
-        #stage {
-          container-type: size;
-          background-color: var(--palette-color-1);
-        }
-
-        #container {
-            position: relative;
-            container-type: size;
-            width: 100cqmin;
-            aspect-ratio: 1;
-            margin: 0 auto;
-            border: 2px solid black;
-        }
-        
-        .node {
-            position: absolute;
-            border: 1px solid black;
-            background-color: rgba(0, 128, 255, 0.25);
-            aspect-ratio: 1;
-            padding: var(--cell-gap);
-            box-sizing: border-box;
-        }
-
-        .leaf {
-            position: absolute;
-            overflow: clip;
-            contain: strict;
-            background-color: rgba(128, 0, 255, 0.25);
-            color: white;
-            text-align: center;
-            box-sizing: border-box;
-            
-            --size-factor: calc(1 / pow(2, var(--depth)));
-            font-size: calc(60vh * var(--size-factor));
-        }
-        
-        /* Shadows etc */
-        .leaf.type-1 {
-            color: var(--palette-color-4);
-            text-shadow: 0 0 calc(2vw * var(--size-factor)) var(--palette-color-3);
-            box-shadow: 0 0 calc(2vw * var(--size-factor)) var(--palette-color-3) inset;
-            animation: fade 2s alternate infinite;
-        }
-
-        /* mix blend mode */
-        .leaf.type-2 {
-            background-image: radial-gradient(blue, red calc(mod(var(--anim-value), 100) * 1%));
-            color: rgb(255, 255, 255, 0.5);
-        }
-        
-        .leaf.type-2 > div {
-            mix-blend-mode: screen;
-        }
-
-        .leaf.type-3 {
-            background: conic-gradient(from calc(mod(var(--anim-value), 400) * 1grad), var(--palette-color-1), var(--palette-color-2), var(--palette-color-3), var(--palette-color-4), var(--palette-color-5));
-            background-clip: text;
-            color: transparent;
-        }
-    
-        /* background blend modes, mix-blend-mode */
-        .leaf.type-4 {
-            --edge: calc(50vh * var(--size-factor));
-            background: linear-gradient(to bottom, var(--palette-color-3) var(--edge), var(--palette-color-1) var(--edge), var(--palette-color-1)),
-                linear-gradient(to right, var(--palette-color-3) 0px, var(--edge), var(--palette-color-1) var(--edge), var(--palette-color-1));
-            background-blend-mode: difference;
-        }
-        .leaf.type-4 > div {
-            mix-blend-mode: difference;
-        }
-                
-        @keyframes fade {
-            from {
-                background-color: var(--palette-color-2);
-            }
-            to {
-                background-color: var(--palette-color-5);
-            }
         }
     </style>
+    <script>
+        let animValue = 0;
+        function updateAnimationValue()
+        {
+            const stage = document.getElementById('stage');
+            stage.style.setProperty("--anim-value", ++animValue);
+
+            requestAnimationFrame(updateAnimationValue);
+        }
+
+        window.addEventListener('load', () => {
+            requestAnimationFrame(updateAnimationValue);
+        }, false);
+    </script>
 </head>
 <body>
     <div id="stage">
         <div id="container">
-            <div class="leaf type-1" style="width: 50cqw; height: 50cqh; left: 0cqw; top: 0cqw; --depth: 1;"><div>♠︎</div></div>
-            <div class="leaf type-2" style="width: 50cqw; height: 50cqh; left: 50cqw; top: 0cqw; --depth: 1;"><div>♦︎</div></div>
-            <div class="leaf type-3" style="width: 50cqw; height: 50cqh; left: 0cqw; top: 50cqw; --depth: 1;"><div>♥︎</div></div>
-            <div class="leaf type-4" style="width: 50cqw; height: 50cqh; left: 50cqw; top: 50cqw; --depth: 1;"><div>♣︎</div></div>
+            <div class="leaf type-1" style="width: 50cqw; height: 50cqh; left: 0cqw; top: 0cqw; --depth: 1; --random: 1;"><div>♚</div></div>
+            <div class="leaf type-2" style="width: 50cqw; height: 50cqh; left: 50cqw; top: 0cqw; --depth: 1; --random: 87;"><div>♛</div></div>
+            <div class="leaf type-3" style="width: 50cqw; height: 50cqh; left: 0cqw; top: 50cqw; --depth: 1; --random: 23;"><div>♞</div></div>
+            <div class="leaf type-4" style="width: 50cqw; height: 50cqh; left: 50cqw; top: 50cqw; --depth: 1; --random: 56;"><div>♜</div></div>
         </div>
     </div>
 </body>

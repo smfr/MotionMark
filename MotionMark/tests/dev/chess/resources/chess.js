@@ -331,8 +331,9 @@ class FractalLayoutController extends LayoutController {
         
         const depth = leafNode.parentNode.depth + 1
         const cqFraction = sizeFraction(depth);
-        leafNode.element.style.width = `${100 * cqFraction}cqw`;
-        leafNode.element.style.height = `${100 * cqFraction}cqh`;
+        const pixelGap = 2;
+        leafNode.element.style.width = `calc(${100 * cqFraction}cqw - ${pixelGap}px)`;
+        leafNode.element.style.height = `calc(${100 * cqFraction}cqh - ${pixelGap}px)`;
         
         let position = new Point(leafNode.position.x * cqFraction, leafNode.position.y * cqFraction);
         let currNode = leafNode.parentNode;
@@ -476,7 +477,7 @@ class FlowerStage extends Stage {
     {
         super();
 
-       Pseudo.randomSeed = Date.now();
+       //Pseudo.randomSeed = Date.now();
 
         this._complexity = 0;
         this._animValue = 0;
@@ -534,14 +535,14 @@ window.benchmarkClass = FlowerBenchmark;
 class FakeController {
     constructor()
     {
-        this.initialComplexity = 54;
+        this.initialComplexity = 42;
         this.startTime = new Date;
     }
 
     shouldStop()
     {
         const now = new Date();
-        return (now - this.startTime) > 5000;
+        return (now - this.startTime) > 50000;
     }
     
     results()
