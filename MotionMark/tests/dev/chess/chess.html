@@ -1,0 +1,129 @@
+<!--
+  Copyright (C) 2025 Apple Inc. All rights reserved.
+
+  Redistribution and use in source and binary forms, with or without
+  modification, are permitted provided that the following conditions
+  are met:
+  1. Redistributions of source code must retain the above copyright
+     notice, this list of conditions and the following disclaimer.
+  2. Redistributions in binary form must reproduce the above copyright
+     notice, this list of conditions and the following disclaimer in the
+     documentation and/or other materials provided with the distribution.
+
+  THIS SOFTWARE IS PROVIDED BY APPLE INC. AND ITS CONTRIBUTORS ``AS IS''
+  AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
+  THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR
+  PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL APPLE INC. OR ITS CONTRIBUTORS
+  BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+  CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+  SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+  INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+  CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF
+  THE POSSIBILITY OF SUCH DAMAGE.
+-->
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <link rel="stylesheet" type="text/css" href="../../resources/stage.css">
+    <style>
+        :root {
+            --anim-value: 0;
+            
+            --palette-color-1: #04151F;
+            --palette-color-2: #183A37;
+            --palette-color-3: #EFD6AC;
+            --palette-color-4: #C44900;
+            --palette-color-5: #432534;
+        }
+
+        #stage {
+          container-type: size;
+          background-color: var(--palette-color-1);
+        }
+
+        #container {
+            position: relative;
+            container-type: size;
+            width: 100cqmin;
+            aspect-ratio: 1;
+            margin: 0 auto;
+            border: 2px solid black;
+        }
+        
+        .leaf {
+            position: absolute;
+            overflow: clip;
+            contain: strict;
+            background-color: rgba(128, 0, 255, 0.25);
+            color: white;
+            text-align: center;
+            box-sizing: border-box;
+            
+            --size-factor: calc(1 / pow(2, var(--depth)));
+            font-size: calc(60vh * var(--size-factor));
+            
+            --anim-input: calc(var(--anim-value) + var(--random));
+        }
+        
+        /* Shadows etc */
+        .leaf.type-1 {
+            color: var(--palette-color-4);
+            --shadow-color: color-mix(in srgb, var(--palette-color-3) 50%, transparent);;
+            text-shadow: 0 0 calc(2vw * var(--size-factor)) var(--shadow-color);
+            box-shadow: 0 0 calc(10vw * var(--size-factor)) var(--shadow-color) inset;
+            animation: fade 2s alternate infinite;
+        }
+
+        /* mix blend mode */
+        .leaf.type-2 {
+            background-image: radial-gradient(var(--palette-color-1), var(--palette-color-4) calc(mod(var(--anim-input), 100) * 1%));
+            color: rgb(255, 255, 255, 0.5);
+        }
+        
+        .leaf.type-2 > div {
+            mix-blend-mode: screen;
+        }
+
+        .leaf.type-3 {
+            background: conic-gradient(from calc(mod(var(--anim-input), 400) * 1grad), var(--palette-color-1), var(--palette-color-2), var(--palette-color-3), var(--palette-color-4), var(--palette-color-5));
+            background-clip: text;
+            color: transparent;
+        }
+    
+        /* background blend modes, mix-blend-mode */
+        .leaf.type-4 {
+            --angle: calc(mod(var(--anim-input), 400) * 1grad);
+            background: linear-gradient(var(--angle), var(--palette-color-3) 50%, var(--palette-color-1) 50%, var(--palette-color-1)),
+                linear-gradient(calc(90deg + var(--angle)), var(--palette-color-3) 0px, 50%, var(--palette-color-1) 50%, var(--palette-color-1));
+            background-blend-mode: difference;
+        }
+        .leaf.type-4 > div {
+            mix-blend-mode: difference;
+        }
+                
+        @keyframes fade {
+            from {
+                background-color: var(--palette-color-2);
+            }
+            to {
+                background-color: var(--palette-color-5);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="stage">
+        <div id="container"></div>
+    </div>
+    <script src="../../../resources/strings.js"></script>
+    <script src="../../../resources/extensions.js"></script>
+    <script src="../../../resources/statistics.js"></script>
+    <script src="../../resources/math.js"></script>
+    <script src="../../resources/benchmark.js"></script>
+    <script src="../../resources/controllers.js"></script>
+    <script src="../../resources/stage.js"></script>
+    <script src="resources/chess.js"></script>
+</body>
+</html>

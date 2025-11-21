@@ -261,10 +261,10 @@ class LeafNode extends TreeNode {
     #randomTextContent()
     {
         const values = [
-            '♠︎',
-            '♦︎',
-            '♥︎',
-            '♣︎',
+            '♚',
+            '♛',
+            '♞',
+            '♜',
         ];
         
         return values[Stage.randomInt(0, values.length - 1)];

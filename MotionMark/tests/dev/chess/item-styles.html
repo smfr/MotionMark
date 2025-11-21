@@ -29,7 +29,8 @@
     <link rel="stylesheet" type="text/css" href="../../resources/stage.css">
     <style>
         :root {
-            --anim-value: 0;
+            --cell-gap: 0px;
+            --anim-value: 123;
             
             --palette-color-1: #04151F;
             --palette-color-2: #183A37;
@@ -52,6 +53,15 @@
             border: 2px solid black;
         }
         
+        .node {
+            position: absolute;
+            border: 1px solid black;
+            background-color: rgba(0, 128, 255, 0.25);
+            aspect-ratio: 1;
+            padding: var(--cell-gap);
+            box-sizing: border-box;
+        }
+
         .leaf {
             position: absolute;
             overflow: clip;
@@ -63,22 +73,19 @@
             
             --size-factor: calc(1 / pow(2, var(--depth)));
             font-size: calc(60vh * var(--size-factor));
-            
-            --anim-input: calc(var(--anim-value) + var(--random));
         }
         
         /* Shadows etc */
         .leaf.type-1 {
             color: var(--palette-color-4);
-            --shadow-color: color-mix(in srgb, var(--palette-color-3) 50%, transparent);;
-            text-shadow: 0 0 calc(2vw * var(--size-factor)) var(--shadow-color);
-            box-shadow: 0 0 calc(10vw * var(--size-factor)) var(--shadow-color) inset;
+            text-shadow: 0 0 calc(2vw * var(--size-factor)) var(--palette-color-3);
+            box-shadow: 0 0 calc(2vw * var(--size-factor)) var(--palette-color-3) inset;
             animation: fade 2s alternate infinite;
         }
 
         /* mix blend mode */
         .leaf.type-2 {
-            background-image: radial-gradient(var(--palette-color-1), var(--palette-color-4) calc(mod(var(--anim-input), 100) * 1%));
+            background-image: radial-gradient(blue, red calc(mod(var(--anim-value), 100) * 1%));
             color: rgb(255, 255, 255, 0.5);
         }
         
@@ -87,16 +94,16 @@
         }
 
         .leaf.type-3 {
-            background: conic-gradient(from calc(mod(var(--anim-input), 400) * 1grad), var(--palette-color-1), var(--palette-color-2), var(--palette-color-3), var(--palette-color-4), var(--palette-color-5));
+            background: conic-gradient(from calc(mod(var(--anim-value), 400) * 1grad), var(--palette-color-1), var(--palette-color-2), var(--palette-color-3), var(--palette-color-4), var(--palette-color-5));
             background-clip: text;
             color: transparent;
         }
     
         /* background blend modes, mix-blend-mode */
         .leaf.type-4 {
-            --angle: calc(mod(var(--anim-input), 400) * 1grad);
-            background: linear-gradient(var(--angle), var(--palette-color-3) 50%, var(--palette-color-1) 50%, var(--palette-color-1)),
-                linear-gradient(calc(90deg + var(--angle)), var(--palette-color-3) 0px, 50%, var(--palette-color-1) 50%, var(--palette-color-1));
+            --edge: calc(50vh * var(--size-factor));
+            background: linear-gradient(to bottom, var(--palette-color-3) var(--edge), var(--palette-color-1) var(--edge), var(--palette-color-1)),
+                linear-gradient(to right, var(--palette-color-3) 0px, var(--edge), var(--palette-color-1) var(--edge), var(--palette-color-1));
             background-blend-mode: difference;
         }
         .leaf.type-4 > div {
@@ -115,15 +122,12 @@
 </head>
 <body>
     <div id="stage">
-        <div id="container"></div>
+        <div id="container">
+            <div class="leaf type-1" style="width: 50cqw; height: 50cqh; left: 0cqw; top: 0cqw; --depth: 1;"><div>♠︎</div></div>
+            <div class="leaf type-2" style="width: 50cqw; height: 50cqh; left: 50cqw; top: 0cqw; --depth: 1;"><div>♦︎</div></div>
+            <div class="leaf type-3" style="width: 50cqw; height: 50cqh; left: 0cqw; top: 50cqw; --depth: 1;"><div>♥︎</div></div>
+            <div class="leaf type-4" style="width: 50cqw; height: 50cqh; left: 50cqw; top: 50cqw; --depth: 1;"><div>♣︎</div></div>
+        </div>
     </div>
-    <script src="../../../resources/strings.js"></script>
-    <script src="../../../resources/extensions.js"></script>
-    <script src="../../../resources/statistics.js"></script>
-    <script src="../../resources/math.js"></script>
-    <script src="../../resources/benchmark.js"></script>
-    <script src="../../resources/controllers.js"></script>
-    <script src="../../resources/stage.js"></script>
-    <script src="resources/flower.js"></script>
 </body>
 </html>
