@@ -472,7 +472,7 @@ class FractalLayoutController extends LayoutController {
     }
 }
 
-class FlowerStage extends Stage {
+class ChessStage extends Stage {
     constructor()
     {
         super();
@@ -499,7 +499,6 @@ class FlowerStage extends Stage {
         if (countDelta == 0)
             return;
 
-        console.log(`tune ${countDelta} - new complexity ${this._complexity + countDelta}`);
         this.layout.arrangeItems(countDelta);
         this._complexity += countDelta;
     }
@@ -515,22 +514,14 @@ class FlowerStage extends Stage {
     }
 }
 
-class FlowerBenchmark extends Benchmark {
+class ChessBenchmark extends Benchmark {
     constructor(options)
     {
-        super(new FlowerStage(), options);
-        
-        // setTimeout(() => {
-        //     this.stage.tune(5);
-        // }, 500);
-        //
-        // setTimeout(() => {
-        //     this.stage.tune(-0);
-        // }, 1000);
+        super(new ChessStage(), options);
     }
 }
 
-window.benchmarkClass = FlowerBenchmark;
+window.benchmarkClass = ChessBenchmark;
 
 class FakeController {
     constructor()
