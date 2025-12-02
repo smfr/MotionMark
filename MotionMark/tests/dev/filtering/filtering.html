@@ -27,9 +27,214 @@
 <head>
     <meta charset="utf-8">
     <link rel="stylesheet" type="text/css" href="../../resources/stage.css">
+    <style>
+
+        @font-face {
+            font-family: "Sniglet";
+            src: url("resources/fonts/Sniglet.woff") format("woff2");
+            font-style: normal;
+        }
+
+        #stage {
+            background-color: white;
+        }
+        
+        #container {
+            width: 100%;
+            height: 100%;
+            display: grid;
+            place-items: center;
+        }
+        
+        #container.distance-fade {
+            perspective: 100vw;
+            perspective-origin: 90% 10%;
+            transform-style: preserve-3d;
+        }
+
+        section.item {
+            grid-area: 1/1;
+            width: 60vw;
+            height: 60vh;
+            
+            display: grid;
+            place-items: center;
+        }
+        
+        .item .banner {
+            font-family: Sniglet, sans-serif;
+            font-size: 20vh;
+/*            text-shadow: 0 0 10px black;*/
+        }
+        
+        .item.style-1 > .banner {
+            filter: url(#glow);
+            color: yellow;
+            display: none;
+        }
+
+        .item.style-2 > .banner {
+            filter: url(#blur);
+            text-shadow: 0 0 10px black;
+            color: blue;
+            display: none;
+        }
+
+        .item.style-3 > .banner {
+            filter: url(#neon);
+            -webkit-text-stroke-color: blue;
+            -webkit-text-stroke-width: 10px;
+            color: transparent;
+            display: none;
+        }
+
+        .item.style-4 > .banner {
+            filter: url(#grain);
+        }
+
+    </style>
 </head>
 <body>
+    <svg width=0 height=0>
+        <defs>
+            <filter id="neon">
+                <feMorphology in="SourceGraphic" operator="dilate" radius="2" result="rounded"></feMorphology>
+                <feGaussianBlur in="rounded" stdDeviation="10" result="blurred"></feGaussianBlur>
+                <femerge>
+                    <femergenode in="rounded" />
+                    <femergenode in="blurred" />
+                </femerge>
+            </filter>
+
+            <filter id="glow" x="-50%" y="-200%" width="200%" height="500%" primitiveUnits="objectBoundingBox">
+                <!-- create blurred copy, different x and y axis blur-->
+                <feGaussianBlur stdDeviation=".025 .2"></feGaussianBlur>
+                <!-- bump up (value > 1) saturation of blurred copy-->
+                <!-- not really necessary, but why not-->
+                <feColorMatrix type="saturate" values="1.3"></feColorMatrix>
+                <!-- slap original on top of blurred & saturated copy-->
+                <!-- in = top layer, defaults to result of previous fe-->
+                <!-- in2 = bottom layer, defaults to previous fe result-->
+                <!-- which is what we want, so we don't set it-->
+                <feBlend in="SourceGraphic"></feBlend>
+            </filter>
+
+            <filter id="blur" x="-50%" y="-50%" width="200%" height="300%" primitiveUnits="objectBoundingBox" color-interpolation-filters="sRGB">
+                <feFlood flood-color="black" flood-opacity="0" result="BackgroundImageFix"/>
+                <feColorMatrix in="SourceAlpha" type="matrix" values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 127 0" result="hardAlpha"/>
+                <feGaussianBlur stdDeviation="6"/>
+                <feColorMatrix type="matrix" values="0 0 0 0 0.258824 0 0 0 0 0.203922 0 0 0 0 0.235294 0 0 0 0.49 0"/>
+                <feBlend mode="darken" in2="BackgroundImageFix" result="shadow"/>
+                <feBlend mode="normal" in="SourceGraphic" in2="shadow" result="shape"/>
+            </filter>
+
+              <filter id="grain" primitiveUnits="objectBoundingBox">
+                <feTurbulence type="fractalNoise" baseFrequency="0.5"></feTurbulence>
+                <feColorMatrix type="saturate" values="0"></feColorMatrix>
+                <feBlend in2="SourceGraphic"></feBlend>
+              </filter>
+
+            <filter id="sliced" color-interpolation-filters="sRGB">
+                <!-- extract top strip & paint it dirty white-->
+                <feColorMatrix values="0 0 0 0 .93 
+            		                      0 0 0 0 .93 
+            													0 0 0 0 .93
+            													0 1 1 0 -1"></feColorMatrix>
+                <!-- offset it to top left-->
+                <feOffset dx="-16" dy="-2" result="topstrip"></feOffset>
+                <!-- extract bottom strip & paint it dirty white-->
+                <feColorMatrix in="SourceGraphic" values="0 0 0 0 .93 
+            		                      0 0 0 0 .93 
+            													0 0 0 0 .93
+            													1 1 -1 0 -1"></feColorMatrix>
+                <!-- offset it to bottom right-->
+                <feOffset dx="16" dy="2"></feOffset>
+                <!-- join it with top strip-->
+                <feBlend in="topstrip"></feBlend>
+                <!-- give the outer strips group a couple of shadows-->
+                <feDropShadow stdDeviation="5"></feDropShadow>
+                <feDropShadow stdDeviation="7" result="outstrip"></feDropShadow>
+                <!-- extract middle strip & paint it light green-->
+                <feColorMatrix in="SourceGraphic" values=" 0  0 0 0 .945 
+            		                       0  0 0 0 .965 
+            													 0  0 0 0 .4 
+            													-1 1 -1 0 0"></feColorMatrix>
+                <!-- add the outer strips with shadows on top-->
+                <feBlend in="outstrip"></feBlend>
+              </filter>
+
+            <filter id="squirl">
+                <feFlood x="0" y="0" height="1" width="1"></feFlood>
+                <feComposite width="20" height="20"></feComposite>
+                <feTile result="turbulence"></feTile>
+                <feComposite in="SourceGraphic" in2="a" operator="in"></feComposite>
+                <feMorphology id="morphologyElement" operator="dilate" radius="14"></feMorphology>
+            </filter>
+
+            <filter id="anim-grain">
+                <feTurbulence type="turbulence" baseFrequency="0.5" numOctaves="2">
+                    <animate attributeName="seed" from="0" to="100" dur="18s" repeatCount="indefinite"></animate>
+                </feTurbulence>
+                <feDisplacementMap in="SourceGraphic" in2="turbulence" scale="-17.86187332123518"></feDisplacementMap>
+            </filter>
+
+
+            <filter id="outoffmesh" color-interpolation-filters="sRGB" x="0" width="100%">
+                <feColorMatrix values="0 0 0 0  .93 
+            		                    0 0 0 0  .93 
+        								0 0 0 0  .93 
+        								0 0 1 0 0" result="basetext"></feColorMatrix>
+                <feGaussianBlur stdDeviation="2"></feGaussianBlur>
+                <feComponentTransfer result="hollowtext">
+                  <feFuncA type="table" tableValues="-1 2 -1"></feFuncA>
+                </feComponentTransfer>
+                <feOffset dx="16" dy="16" result="emptyoff"></feOffset>
+                <feConvolveMatrix in="basetext" order="8" kernelMatrix="1 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 1 0 0 0 0 0 0 0 0 1" divisor="1"></feConvolveMatrix>
+                <feColorMatrix values="0 0 0 0  .29 
+            		                      0 0 0 0  .07 
+        								0 0 0 0  .07 
+        								0 0 0 1 0"></feColorMatrix>
+                <feGaussianBlur stdDeviation="1.5"></feGaussianBlur>
+                <feComponentTransfer>
+                  <feFuncA type="gamma" amplitude="4" exponent="3" offset="-.5"></feFuncA>
+                </feComponentTransfer>
+                <feOffset dx="4" dy="4" result="longshadow"></feOffset>
+                <feColorMatrix in="SourceGraphic" values="0 0 0 0  .93 
+            									        0 0 0 0  .93 
+        											0 0 0 0  .93 
+        											1 0 0 0 0"></feColorMatrix>
+                <feGaussianBlur stdDeviation="2"></feGaussianBlur>
+                <feComponentTransfer>
+                  <feFuncA type="gamma" amplitude="5" exponent="3" offset="-.5"></feFuncA>
+                </feComponentTransfer>
+                <feComposite in="basetext" operator="in" result="patterns"></feComposite>
+                <feColorMatrix in="SourceGraphic" values="0 0 0 0  .29 
+            									        0 0 0 0  .9 
+        												0 0 0 0  .95 
+        												0 1 0 0 0" result="basegrad"></feColorMatrix>
+                <feComponentTransfer result="initline">
+                  <feFuncA type="table" tableValues="-1 99"></feFuncA>
+                </feComponentTransfer>
+                <feComposite in="hollowtext" operator="in"></feComposite>
+                <feBlend in="patterns" result="outpattern"></feBlend>
+                <feOffset dx="-8" dy="-8" result="toppattern"></feOffset>
+                <feComposite in="outpattern" in2="initline" operator="in"></feComposite>
+                <feOffset dx="16" dy="16" result="backdots"></feOffset>
+                <feFlood flood-color="#d93638"></feFlood>
+                <feBlend in="basegrad"></feBlend>
+                <feComposite in2="basetext" operator="in" result="textgrad"></feComposite>
+                <feBlend in="toppattern"></feBlend>
+                <feBlend in2="longshadow"></feBlend>
+                <feBlend in2="backdots"></feBlend>
+                <feBlend in2="emptyoff"></feBlend>
+              </filter>
+
+        </defs>
+    </svg>
+
+
     <div id="stage">
+        <div id="container"></div>
     </div>
     <script src="../../../resources/strings.js"></script>
     <script src="../../../resources/extensions.js"></script>
