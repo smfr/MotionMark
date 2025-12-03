@@ -120,22 +120,8 @@
         }
 
         .item.style-4  .content {
-            position: relative;
-            filter: url(#sliced);
-            color: oklch(100% 9 120deg); // Can't change this color without fixing the filter.
-            isolation: isolate;
-        }
-        
-        .item.style-4 .content::after {
-            position: absolute;
-            inset: 0;
-            background-image:
-                linear-gradient(-4deg, #0000 calc(58.5% + -.5px), oklch(100% 9 240deg) calc(58.5% + .5px)), 
-                linear-gradient(0deg, oklch(100% 9 0deg) calc(31% + -.5px), #000 calc(31% + .5px));
-            background-size: 100% 1lh;
-            mix-blend-mode: lighten;
-            pointer-events: none;
-            content: '';
+            filter: url(#watery);
+            color: blue;
         }
 
         .item.style-5 {
@@ -227,6 +213,31 @@
                 <feBlend in="tube" mode="normal"/>
             </filter>
 
+
+
+
+            <filter id="watery" x="-20%" y="-20%" height="140%" width="140%">
+
+                <feFlood flood-color="#9800FF" result="COLOR-violet" />
+
+                <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="1" seed="2" result="turbulence" />
+
+                <feGaussianBlur stdDeviation="6.5"  in="SourceAlpha" result="alpha-blur" />
+                <feDisplacementMap scale="40" in="alpha-blur" in2="turbulence" result="BOTTOM-SPLASH_30"/>
+
+                <feComposite operator="in" in="COLOR-violet" in2="BOTTOM-SPLASH_30" result="BOTTOM-SPLASH_40" />
+
+                <feDisplacementMap scale="40" in="SourceGraphic" in2="turbulence" result="watery-foreground"/>
+
+                <feBlend in=watery-foreground in2="BOTTOM-SPLASH_40">
+            </filter>
+
+
+
+
+
+
+
             <filter id="sliced" color-interpolation-filters="sRGB">
                 <!-- extract top strip & paint it dirty white-->
                 <feColorMatrix values="0 0 0 0 .93 
@@ -257,10 +268,8 @@
                 <feBlend in="outstrip"></feBlend>
               </filter>
 
-              <circle id="circle" cx="8" cy="8" r="5" fill="#FFF8DF" />
               <filter id="lights" primitiveUnits="userSpaceOnUse">
-                
-                <feImage x="0" y="0" width="16" height="16" href="#circle" result="light" />
+                <feImage width="16" height="16" href="resources/light.svg" result="light" />
                 <feTile in="light" result="light-grid" />
                 <feComposite  in="light-grid" in2="SourceAlpha" operator="in" result="lights" />
 

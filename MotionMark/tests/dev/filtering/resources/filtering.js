@@ -172,7 +172,7 @@ class Item {
             'Zoom',
             'Ooze',
             'Open',
-            'Sliced',
+            'Water',
             'Neon',
             'Lights'
         ];
