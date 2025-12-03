@@ -137,11 +137,15 @@ class StackLayout extends ItemLayout {
     {
         const numItems = this._container.children.length;
         const offset = new Size(this._maxOffset.width / numItems, this._maxOffset.height / numItems);
+        const minAlpha = 0.2;
+        const maxAlpha = 1;
 
         for (let i = 0; i < this._container.children.length; ++i) {
             const child = this._container.children[i];
             child.style.left = `${i * offset.width}px`;
             child.style.top = `${i * offset.height}px`;
+            
+            child.style.setProperty("--fade-level", Utilities.lerp((i + 1) / numItems, minAlpha, maxAlpha));
         }
     }
     
@@ -255,7 +259,7 @@ class FilteringStage extends Stage {
 
     animate()
     {
-        this.element.style.setProperty("--anim-value", ++this._animValue);
+        //this.element.style.setProperty("--anim-value", ++this._animValue);
     }
 
     complexity()
@@ -284,7 +288,7 @@ window.benchmarkClass = FilteringBenchmark;
 class FakeController {
     constructor()
     {
-        this.initialComplexity = 4;
+        this.initialComplexity = 1;
         this.startTime = new Date;
     }
 

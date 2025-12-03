@@ -32,15 +32,20 @@
         @font-face {
             font-family: "Sniglet";
             src: url("resources/fonts/Sniglet.woff") format("woff2");
-            font-style: normal;
+        }
+
+        @font-face {
+            font-family: "Knewave";
+            src: url("resources/fonts/Knewave.woff") format("woff2");
         }
 
         :root {
             --anim-value: 20;
+            --fade-level: 0;
         }
 
         #stage {
-            background-color: white;
+            background-color: silver;
             --color1: hsl(var(--anim-value) 60 50);
             --color2: hsl(calc(var(--anim-value) + 180) 60 50);
             --color3: orange;
@@ -61,12 +66,12 @@
             display: grid;
             grid-template-columns: 1fr 1fr 1fr;
             grid-template-rows: 1fr 1fr;
+            filter: opacity(calc(var(--fade-level) * 100%));
         }
 
         .item {
             display: grid;
             place-items: center;
-            border: 1px solid silver;
             overflow: clip;
             font-family: Sniglet, sans-serif;
             font-size: 10vh;
@@ -76,6 +81,7 @@
         }
         
         .item.style-1 .content {
+            font-family: Knewave, sans-serif;
             filter: url(#zoom);
             color: var(--color1);
         }
@@ -92,20 +98,22 @@
         }
 
         .item.style-3 .container {
-            --background-color: #fcdc9f;
+            --bgcolor: #fcdc9f;
+            /* Hack to get a white inset border, until support for image(<color>) is more widely available */
+            background-image: linear-gradient(var(--bgcolor), var(--bgcolor)), linear-gradient(white, white);
+            background-clip: padding-box, border-box;
             border-radius: 30px;
-            border: 2px solid white;
-            padding: 20px;
+            border: 12px double var(--bgcolor);
+            padding: 24px 20px 0px 20px;
             rotate: 10deg;
             box-shadow: 0 0 10px rgb(0, 0, 0, 0.8);
         }
 
         .item.style-3 .content {
-            width: 100%;
-            height: 100%;
             filter: url(#signage);
             color: var(--color2);
             text-transform: uppercase;
+            line-height: 1.2lh;
         }
 
         .item.style-4 {
@@ -152,15 +160,15 @@
     <svg width=0 height=0>
         <defs>
             <filter id="zoom" primitiveUnits="userSpaceOnUse">
-    			<feFlood flood-color="#93a8ac" flood-opacity="1" result="backgroundImage"></feFlood>
+    			<feFlood flood-color="black" flood-opacity="0" result="backgroundImage"></feFlood>
 
     			<feGaussianBlur in="SourceGraphic" stdDeviation="15 3" edgeMode="none" result="blurred"></feGaussianBlur>
-    			<feColorMatrix in="blurred" type="saturate" values="0.8" result="desaturated"></feColorMatrix>
+    			<feColorMatrix in="blurred" type="saturate" values="1.2" result="desaturated"></feColorMatrix>
     			<feOffset in="desaturated" dx="10" dy="5" result="offset"></feOffset>
-
                 <!-- Blend with the background color here (in linear space) to avoid ugly gamma-based blending -->
     			<feBlend in="backgroundImage" in2="offset" mode="multiply" result="blended"></feBlend>
     			<feBlend in="SourceGraphic" in2="blended" mode="normal"></feBlend>
+
             </filter>
 
             <filter id="grain" primitiveUnits="userSpaceOnUse">
