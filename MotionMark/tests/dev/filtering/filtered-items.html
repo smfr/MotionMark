@@ -36,7 +36,7 @@
         }
 
         #stage {
-            background-color: #93a8ac;
+            background-color: black;
         }
         
         #container {
@@ -65,9 +65,17 @@
             font-size: 10vh;
         }
         
+        .item.style-1 {
+            background-color: #93a8ac;
+        }
+        
         .item.style-1 .content {
             filter: url(#zoom);
             color: #F15BB5;
+        }
+
+        .item.style-2 {
+            background-color: white;
         }
 
         .item.style-2  .content {
@@ -75,13 +83,17 @@
             color: green;
         }
 
-        
+        .item.style-3 {
+            background-color: #F5F2E3;
+        }
+
         .item.style-3 .container {
             --background-color: #fcdc9f;
             border-radius: 30px;
             border: 2px solid white;
             padding: 20px;
             rotate: 10deg;
+            box-shadow: 0 0 10px rgb(0, 0, 0, 0.8);
         }
 
         .item.style-3 .content {
@@ -118,8 +130,12 @@
             filter: url(#neon);
         }
 
+        .item.style-6 {
+            background-color: silver;
+        }
         .item.style-6 .content {
-            display: none;
+            color: pink;
+            filter: url(#lights);
         }
 
     </style>
@@ -140,15 +156,14 @@
     			<feBlend in="SourceGraphic" in2="blended" mode="normal"></feBlend>
             </filter>
 
-
-            <filter id="grain" primitiveUnits="objectBoundingBox">
+            <filter id="grain" primitiveUnits="userSpaceOnUse">
                 <feTurbulence type="fractalNoise" baseFrequency=".2" />
                 <feColorMatrix type="saturate" values="0" />
                 <feComposite in2="SourceAlpha" operator="in" />
 
-    			<feBlend in="SourceGraphic" in2="blended" mode="multiply"></feBlend>
+                <feBlend in="SourceGraphic" mode="lighten"></feBlend>
+                <feDropShadow dx="13" dy="13" stdDeviation="5" flood-color="black" flood-opacity="0.2"/>
             </filter>
-
 
             <filter id="signage" primitiveUnits="userSpaceOnUse">
                 <feOffset in="SourceAlpha" dx="3" dy="2" result="offset1"></feOffset>
@@ -163,91 +178,39 @@
                 <feBlend in="SourceGraphic" ></feBlend>
             </filter>
 
-
             <filter id="neon">
                 <!-- Extract the blue outline, turn it into the neon glow -->
                 <feColorMatrix values="0 0 0 0 1
-                                       0 0 0 0 0
-                                       0 0 0 0 0
-                                       0 0 1 0 0" result="tube" />
-                <feColorMatrix in="tube" type="hueRotate" values="26" />
+                                       0 0 0 0 0.5
+                                       0 0 0 0 0.7
+                                       0 0 1 0 0"  />
+               <!--Brighten it up -->
+                <feComponentTransfer>
+                    <feFuncR type="linear" slope="1.6"/>
+                    <feFuncG type="linear" slope="1.6"/>
+                    <feFuncB type="linear" slope="1.6"/>
+                </feComponentTransfer>
+                <!--Big glow -->
                 <feGaussianBlur stdDeviation="10" result="tubeglow" />
 
                 <feColorMatrix in="SourceGraphic" values="0 0 0 0 1
                                        0 0 0 0 1
                                        0 0 0 0 1
-                                       0 0 0.1 0 0" result="tube" />
+                                       0 0 0.1 0 0" />
+               <!-- Soften it slightly -->
+                <feGaussianBlur stdDeviation="1" result="tube" />
 
+                <!-- Extract the red fill, turn it into the background -->
                 <feColorMatrix in="SourceGraphic" values="0 0 0 0 1
                                        0 0 0 0 0
                                        0 0 0 0 0
-                                       1 0 0 0 0" result="fill" />
-                <feColorMatrix in="fill" type="hueRotate" values="206" />
+                                       1 0 0 0 0" />
+                <feColorMatrix type="hueRotate" values="206" />
                 <feOffset dx="10" dy="10" result="background" />
-                <!-- Extract the red fill, turn it into the background -->
 
-                <feMerge>
-                  <feMergeNode in="background" />
-                  <feMergeNode in="tubeglow" />
-                  <feMergeNode in="tube" />
-                </feMerge>
+                <feBlend in="tubeglow" in2="background" mode="lighten"/>
+                <feBlend in="tube" mode="normal"/>
             </filter>
-
-                <!-- <feColorMatrix values="0 0 0 0  .93
-                                        0 0 0 0  .93
-                                        0 0 0 0  .93
-                                        0 0 1 0 0" result="basetext"></feColorMatrix>
-                <feGaussianBlur stdDeviation="2"></feGaussianBlur>
-                <feComponentTransfer result="hollowtext">
-                    <feFuncA type="table" tableValues="-1 2 -1"></feFuncA>
-                </feComponentTransfer>
-                <feOffset dx="16" dy="16" result="emptyoff"></feOffset>
-                <feConvolveMatrix in="basetext" order="8" kernelMatrix="1 0 0 0 0 0 0 0
-                                                                        0 1 0 0 0 0 0 0
-                                                                        0 0 1 0 0 0 0 0
-                                                                        0 0 0 1 0 0 0 0
-                                                                        0 0 0 0 1 0 0 0
-                                                                        0 0 0 0 0 1 0 0
-                                                                        0 0 0 0 0 0 1 0
-                                                                        0 0 0 0 0 0 0 1" divisor="1"></feConvolveMatrix>
-                <feColorMatrix values="0 0 0 0  .29
-                                        0 0 0 0  .07
-                                        0 0 0 0  .07
-                                        0 0 0 1 0"></feColorMatrix>
-                <feGaussianBlur stdDeviation="1.5"></feGaussianBlur>
-                <feComponentTransfer>
-                  <feFuncA type="gamma" amplitude="4" exponent="3" offset="-.5"></feFuncA>
-                </feComponentTransfer>
-                <feOffset dx="4" dy="4" result="longshadow"></feOffset>
-                <feColorMatrix in="SourceGraphic" values="0 0 0 0  .93
-                                                        0 0 0 0  .93
-                                                    0 0 0 0  .93
-                                                    1 0 0 0 0"></feColorMatrix>
-                <feGaussianBlur stdDeviation="2"></feGaussianBlur>
-                <feComponentTransfer>
-                  <feFuncA type="gamma" amplitude="5" exponent="3" offset="-.5"></feFuncA>
-                </feComponentTransfer>
-                <feComposite in="basetext" operator="in" result="patterns"></feComposite>
-                <feColorMatrix in="SourceGraphic" values="0 0 0 0  .29
-                                                        0 0 0 0  .9
-                                                        0 0 0 0  .95
-                                                        0 1 0 0 0" result="basegrad"></feColorMatrix>
-                <feComponentTransfer result="initline">
-                  <feFuncA type="table" tableValues="-1 99"></feFuncA>
-                </feComponentTransfer>
-                <feComposite in="hollowtext" operator="in"></feComposite>
-                <feBlend in="patterns" result="outpattern"></feBlend>
-                <feOffset dx="-8" dy="-8" result="toppattern"></feOffset>
-                <feComposite in="outpattern" in2="initline" operator="in"></feComposite>
-                <feOffset dx="16" dy="16" result="backdots"></feOffset>
-                <feFlood flood-color="#d93638"></feFlood>
-                <feBlend in="basegrad"></feBlend>
-                <feComposite in2="basetext" operator="in" result="textgrad"></feComposite>
-                <feBlend in="toppattern"></feBlend>
-                <feBlend in2="longshadow"></feBlend>
-                <feBlend in2="backdots"></feBlend>
-                <feBlend in2="emptyoff"></feBlend>
-              </filter> -->
 
             <filter id="sliced" color-interpolation-filters="sRGB">
                 <!-- extract top strip & paint it dirty white-->
@@ -277,6 +240,33 @@
             											   -1 1 -1 0 0"></feColorMatrix>
                 <!-- add the outer strips with shadows on top-->
                 <feBlend in="outstrip"></feBlend>
+              </filter>
+
+              <circle id="circle" cx="8" cy="8" r="5" fill="#FFF8DF" />
+              <filter id="lights" primitiveUnits="userSpaceOnUse">
+                
+                <feImage x="0" y="0" width="16" height="16" href="#circle" result="light" />
+                <feTile in="light" result="light-grid" />
+                <feComposite  in="light-grid" in2="SourceAlpha" operator="in" result="lights" />
+
+                <feMorphology in="SourceAlpha" operator="dilate" radius="3" result="dilated-alpha" />
+                <feMorphology in="SourceAlpha" operator="erode" radius="3" result="eroded-alpha" />
+                <feComposite in="dilated-alpha" in2="eroded-alpha" operator="out" />
+                <!--Colorize -->
+                <feColorMatrix values=" 1 0 0 0 1
+                                       0 1 0 0 0
+                                       0 0 1 0 0
+                                       0 0 0 1 0" result="border" />
+                <!--Inner shadow -->
+                <feDropShadow dx=0 dy=0 stdDeviation="7" result="shadow" />
+                <!--Clip to the inside -->
+                <feComposite in="SourceAlpha" in2="shadow" operator="in" result="inner-shadow" />
+
+                <feMerge>
+                    <feMergeNode in="inner-shadow"/>
+                    <feMergeNode in="lights"/>
+                    <feMergeNode in="border"/>
+                </feMerge>
               </filter>
 
 <!-- Unused -->
@@ -362,11 +352,11 @@
     </svg>
     <div id="stage">
         <div id="container">
-            <section class="item style-1"><div class="container"><div class="content">Banger</div></div></section>
-            <section class="item style-2"><div class="container"><div class="content">Banger</div></div></section>
+            <section class="item style-1"><div class="container"><div class="content">Zoom</div></div></section>
+            <section class="item style-2"><div class="container"><div class="content">Ooze</div></div></section>
             <section class="item style-3"><div class="container"><div class="content">Open</div></div></section>
-            <section class="item style-4"><div class="container"><div class="content">Banger</div></div></section>
-            <section class="item style-5"><div class="container"><div class="content">Banger</div></div></section>
+            <section class="item style-4"><div class="container"><div class="content">Sliced</div></div></section>
+            <section class="item style-5"><div class="container"><div class="content">Neon</div></div></section>
             <section class="item style-6"><div class="container"><div class="content">Banger</div></div></section>
         </div>
     </div>
