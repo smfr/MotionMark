@@ -84,6 +84,7 @@ class Rect {
     }
 }
 
+/* ------------------------------------------------------------ */
 
 class ItemLayout {
     constructor(container, itemSize, stageSize)
@@ -125,172 +126,32 @@ class RandomPlacementLayout extends ItemLayout {
     }
 }
 
-class FanLayout3D extends ItemLayout {
-    constructor(container, itemSize, stageSize)
+class StackLayout extends ItemLayout {
+    constructor(container, itemSize, stageSize, maxOffset)
     {
         super(container, itemSize, stageSize);
-        this._container.classList.add('layout-fan');
+        this._maxOffset = maxOffset;
     }
-
+    
     arrangeItems()
     {
-        const itemCount = this._container.children.length;
-        const startAngle = -80;
-        const endAngle = 80;
-        const angleIncrement = (endAngle - startAngle) / (itemCount - 1);
-        
-        for (let i = 0; i < this._container.children.length; ++ i) {
+        const numItems = this._container.children.length;
+        const offset = new Size(this._maxOffset.width / numItems, this._maxOffset.height / numItems);
+
+        for (let i = 0; i < this._container.children.length; ++i) {
             const child = this._container.children[i];
-            child.style.transform = `rotate3d(0, 1, 0, ${startAngle + angleIncrement * i}deg) translateZ(-50vw)`;
+            child.style.left = `${i * offset.width}px`;
+            child.style.top = `${i * offset.height}px`;
         }
     }
-}
-
-class DistanceFadeLayout extends ItemLayout {
-    constructor(container, itemSize, stageSize)
-    {
-        super(container, itemSize, stageSize);
-        this._container.classList.add('distance-fade');
-    }
-
-    arrangeItems()
-    {
-        const itemCount = this._container.children.length;
-        const zIncrement = 10;
-        const opacityFactor = 0.9;
-
-        for (let i = 0; i < this._container.children.length; ++ i) {
-            const child = this._container.children[i];
-            child.style.transform = `translateZ(-${i * zIncrement}vw)`;
-            child.style.opacity = `${1 * Math.pow(opacityFactor, i).toFixed(3)}`;
-        }
-    }
-}
-
-class Grid2DLayout extends ItemLayout {
-    constructor(container, itemSize, stageSize)
-    {
-        super(container, itemSize, stageSize);
-        this._container.classList.add('grid-2d');
-    }
-
-    arrangeItems()
-    {
-        const itemCount = this._container.children.length;
-
-        const stageAspectRatio = this._stageSize.width / this._stageSize.height;
-        const itemAspectRatio = this._itemSize.width / this._itemSize.height;
-        const rowsToColsRatio = stageAspectRatio / itemAspectRatio;
-        
-        const columnCount = Math.ceil(Math.sqrt(itemCount / rowsToColsRatio));
-        const rowCount = Math.ceil(itemCount / columnCount);
-
-        const cellSize = new Size(this._stageSize.width / columnCount, this._stageSize.height / rowCount);
-        const scale = Math.min(cellSize.width / this._itemSize.width, cellSize.height / this._itemSize.height);
-        
-        for (let i = 0; i < this._container.children.length; ++ i) {
-            const child = this._container.children[i];
-
-            const row = Math.floor(i / columnCount);
-            const col = i % columnCount;
-
-            child.style.translate = `${col * cellSize.width}px ${row * cellSize.height}px`;
-            child.style.scale = scale;
-        }
-    }
-}
-
-class PictureWallLayout3D extends ItemLayout {
-    constructor(container, itemSize, stageSize)
-    {
-        super(container, itemSize, stageSize);
-        this.oneUpFront = true;
-        this._container.classList.add('picture-wall');
-    }
-
-    arrangeItems()
-    {
-        let itemCount = this._container.children.length;
-        
-        if (this.oneUpFront && itemCount > 0)
-            --itemCount;
-
-        const stageAspectRatio = this._stageSize.width / this._stageSize.height;
-        const itemAspectRatio = this._itemSize.width / this._itemSize.height;
-        const rowsToColsRatio = stageAspectRatio / itemAspectRatio;
-        
-        const columnCount = Math.ceil(Math.sqrt(itemCount / rowsToColsRatio));
-        const rowCount = Math.ceil(itemCount / columnCount);
-
-        const cellSize = new Size(this._stageSize.width / columnCount, this._stageSize.height / rowCount);
-        const scale = Math.min(cellSize.width / this._itemSize.width, cellSize.height / this._itemSize.height);
-
-        const startAngle = 60;
-        const endAngle = -60;
-        const angleIncrement = (endAngle - startAngle) / (columnCount - 1);
-        
-        const totalWidth = cellSize.width * columnCount;
-        // Compute a radius such that the totalWidth covers the circumference of the arc between startAngle and endAngle.
-        const radius = totalWidth / (((startAngle - endAngle) / 360) * 2 * Math.PI);
-
-        let startIndex = 0;
-        let offset = 0;
-        if (this.oneUpFront) {
-            startIndex = 1;
-            offset = -1;
-            this._container.children[0].style.transform = `translate(0, ${(this._stageSize.height - this._itemSize.height) / 2}px)`;
-        }
-        
-        for (let i = startIndex; i < this._container.children.length; ++ i) {
-            const indexInGrid = i + offset;
-            const child = this._container.children[i];
-
-            const row = Math.floor(indexInGrid / columnCount);
-            const col = indexInGrid % columnCount;
-
-            child.style.transform = `translate(0, ${row * cellSize.height}px) rotate3d(0, 1, 0, ${startAngle + angleIncrement * col}deg) translateZ(${-radius}px) scale(${scale})`;
-        }
-    }
-}
-
-class ZStackLayout3D extends ItemLayout {
-    constructor(container, itemSize, stageSize)
-    {
-        super(container, itemSize, stageSize);
-        this._container.classList.add('z-stack');
-    }
-
-    arrangeItems()
-    {
-        const itemCount = this._container.children.length;
-
-        const closeZ = 0;
-        const distantZ = 2000;
-        const zIncrement = (closeZ - distantZ) / (itemCount - 1);
-
-        const xSpace = (this._stageSize.width - this._itemSize.width) / 2;
-        const minX = -xSpace;
-        const maxX = xSpace;
-        const xIncrement = (maxX - minX) / (itemCount - 1);
-
-        const ySpace = (this._stageSize.height - this._itemSize.height) / 2;
-        const minY = -ySpace;
-        const maxY = ySpace;
-        const yIncrement = (maxY - minY) / (itemCount - 1);
-        
-        for (let i = 0; i < this._container.children.length; ++ i) {
-            const child = this._container.children[i];
-            child.style.transform = `translate(${minX + i * xIncrement}px, ${minY + i * yIncrement}px) rotate3d(0, 1, 0, -4deg) translateZ(${closeZ + i * zIncrement}px)`;
-        }
-    }
+    
 }
 
 /* ------------------------------------------------------------ */
 
 class Item {
-    constructor(container, data)
+    constructor(container)
     {
-        this.data = data;
         this.#createElements(container);
     }
     
@@ -299,35 +160,34 @@ class Item {
         this.section.remove();
     }
     
-    measureSize(container)
-    {
-        const bounds = this.section.getBoundingClientRect();
-        return new Size(bounds.width, bounds.height);
-    }
-
     #createElements(container)
     {
-        this.section = this.#createElement('section', 'item');
+        this.section = this.#createElement('section', 'unit');
         
-        
-        /*
-        const marqeeLine1 = this.#createElement('div', 'line', this.data['paragraph-1']);
-        const marqeeLine2 = this.#createElement('div', 'line', this.data['paragraph-1']);
-        
-        this.#colorizeWords(marqeeLine1);
-        this.#colorizeWords(marqeeLine2);
+        const textValues = [
+            'Zoom',
+            'Ooze',
+            'Open',
+            'Sliced',
+            'Neon',
+            'Lights'
+        ];
 
-        this.marqueeContainer.appendChild(marqeeLine1);
-        this.marqueeContainer.appendChild(marqeeLine2);
-        */
+        // Create six items, one of each type.
+        const numItems = 6;
+        for (let i = 0; i < numItems; ++i) {
 
-        // this.section.appendChild(this.heading);
-        // this.section.appendChild(this.bodyText);
-        // this.section.appendChild(this.marqueeContainer);
-        
-        const banner = this.#createElement('div', 'banner', 'Splurge!');
-        this.section.appendChild(banner);
-        
+            const item = this.#createElement('div', 'item');
+            item.classList.add(`style-${i + 1}`)
+            this.section.appendChild(item);
+
+            const wrapper = this.#createElement('div', 'container');
+            item.appendChild(wrapper);
+
+            const content = this.#createElement('div', 'content', textValues[i]);
+            wrapper.appendChild(content);
+        }
+
         container.appendChild(this.section);
     }
 
@@ -354,6 +214,7 @@ class FilteringStage extends Stage {
        this.container = document.getElementById('container');
        this.container.innerText = '';
 
+       this._animValue = 0;
        this._complexity = 0;
        this._items = [];
     }
@@ -362,23 +223,11 @@ class FilteringStage extends Stage {
     {
         await super.initialize(benchmark, options);
         
-        // const response = await fetch('resources/text-source.json');
-        // if (!response.ok)
-        //     console.error(`Failed to fetch JSON`);
-        //
-        // const jsonData = await response.json();
-        // this.textData = jsonData.data;
-
         const stageRect = this.element.getBoundingClientRect();
         this._stageRect = new Rect(Point.zero, new Size(stageRect.width, stageRect.height));
-        
-        const item = new Item(this.container, 'Some text here');
-        const approximateItemSize = item.measureSize()
-        item.remove();
-        
-        console.log(`item size ${JSON.stringify(approximateItemSize)}`)
 
-        this.layout = new DistanceFadeLayout(this.container, approximateItemSize, new Size(stageRect.width, stageRect.height));
+        const maxOffset = new Size(100, 100);
+        this.layout = new StackLayout(this.container, new Size(), new Size(stageRect.width, stageRect.height), maxOffset);
     }
 
     tune(countDelta)
@@ -395,12 +244,7 @@ class FilteringStage extends Stage {
         } else if (newComplexity > this._complexity) {
             
             for (let itemCount = this._complexity; itemCount < newComplexity; ++itemCount) {
-                const item = new Item(this.container, 'Some text here');
-                
-                const numStyles = 4;
-                const index = this._items.length;
-                const styleIndex = index % numStyles;
-                item.section.classList.add(`style-${1 + styleIndex}`);
+                const item = new Item(this.container);
                 this._items.push(item);
             }
         }
@@ -411,9 +255,7 @@ class FilteringStage extends Stage {
 
     animate()
     {
-        this._items.forEach((item) => {
-            // item.section.style.left = parseInt(item.section.style.left) + 1 + 'px';
-        });
+        this.element.style.setProperty("--anim-value", ++this._animValue);
     }
 
     complexity()
