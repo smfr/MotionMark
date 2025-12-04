@@ -38,18 +38,35 @@
             font-family: "Knewave";
             src: url("resources/fonts/Knewave.woff") format("woff2");
         }
+        
+        @property --anim-value {
+            syntax: "<integer>";
+            inherits: true;
+            initial-value: 0;
+        }
+
+        @keyframes ValueAnimation {
+            from { --anim-value: 0; }
+            to   { --anim-value: 360; }
+        }
 
         :root {
-            --anim-value: 20;
             --fade-level: 0;
+            animation: ValueAnimation 4s alternate infinite linear;
+
+            --hue-angle: mod(var(--anim-value), 360);
+            --color1: hsl(var(--hue-angle) 60 50);
+            --color2: hsl(calc(var(--hue-angle) + 180) 60 50);
+            --color3: orange;
+            --color4: cyan;
+        }
+        
+        svg {
+            position: absolute;
         }
 
         #stage {
-            background-color: black;
-            --color1: hsl(var(--anim-value) 60 50);
-            --color2: hsl(calc(var(--anim-value) + 180) 60 50);
-            --color3: orange;
-            --color4: cyan;
+            background-color: pink;
         }
 
         #container {
@@ -90,7 +107,7 @@
         }
 
         .item.style-2  .content {
-            filter: url(#grain);
+            filter: url(#static);
             color: green;
         }
 
@@ -159,8 +176,10 @@
 
             </filter>
 
-            <filter id="grain" primitiveUnits="userSpaceOnUse">
-                <feTurbulence type="fractalNoise" baseFrequency=".2" />
+            <filter id="static" primitiveUnits="userSpaceOnUse">
+                <feTurbulence type="fractalNoise" baseFrequency=".2">
+                    <animate attributeName="seed" from="2" to="1000" dur="10s" repeatCount="indefinite"/>
+                </feTurbulence>
                 <feColorMatrix type="saturate" values="0" />
                 <feComposite in2="SourceAlpha" operator="in" />
 
@@ -216,62 +235,38 @@
             </filter>
 
             <filter id="watery" x="-20%" y="-20%" height="140%" width="140%">
-                <feFlood flood-color="#0F7FFE" result="skyblue" />
+                <feFlood flood-color="#1DD9CD" result="skyblue" />
 
-                <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="1" seed="2" result="turbulence" />
-                <feGaussianBlur stdDeviation="6.5"  in="SourceAlpha" result="alpha-blur" />
-                <feDisplacementMap scale="40" in="alpha-blur" in2="turbulence" result="lower-water"/>
+                <feTurbulence type="fractalNoise" baseFrequency="0.05" numOctaves="1" seed="2" />
+
+                <!-- Animate via a hue rotation to get a smoothly repeating change in the texture -->
+                <feColorMatrix type="hueRotate" values="0" result="turbulence">
+                    <animate attributeName="values" from="0" to="360" dur="10s" repeatCount="indefinite"/>
+                </feColorMatrix>
+
+                <feGaussianBlur stdDeviation="6.5" in="SourceAlpha" result="alpha-blur" />
+
+                <feDisplacementMap scale="40" in="alpha-blur" in2="turbulence" xChannelSelector="B" yChannelSelector="R" result="lower-water"/>
                 <feComposite operator="in" in="skyblue" in2="lower-water" result="colored-lower-water" />
 
-                <feDisplacementMap scale="16" in="SourceGraphic" in2="turbulence" result="wavy-foreground"/>
+                <feDisplacementMap scale="16" in="SourceGraphic" in2="turbulence" xChannelSelector="G" yChannelSelector="B" result="wavy-foreground"/>
 
-                <!-- Take the alpha channel of the turbulence -->
+                <!-- Take the green channel of the turbulence into alpha -->
                 <feColorMatrix
                             in="turbulence"
                             type="matrix"
                             values="0 0 0 0 0
                                     0 0 0 0 0
                                     0 0 0 0 0
-                                    0 0 0 1 0"
-                            result="grayscale"
+                                    0 -0.4 0 1 0"
+                            result="alpha"
                         />
-                <feComposite operator="in" in="wavy-foreground" in2="grayscale" result="watery-foreground" />
+                <feComposite operator="in" in="wavy-foreground" in2="alpha" result="watery-foreground" />
 
                 <feBlend in=watery-foreground in2="colored-lower-water">
             </filter>
 
-
-            <filter id="sliced" color-interpolation-filters="sRGB">
-                <!-- extract top strip & paint it dirty white-->
-                <feColorMatrix values="0 0 0 0 .93 
-            		                    0 0 0 0 .93 
-										0 0 0 0 .93
-										0 1 1 0 -1"></feColorMatrix>
-                <!-- offset it to top left-->
-                <feOffset dx="-16" dy="-2" result="topstrip"></feOffset>
-                <!-- extract bottom strip & paint it dirty white-->
-                <feColorMatrix in="SourceGraphic" values="0 0 0 0 .93 
-            		                      0 0 0 0 .93 
-            							0 0 0 0 .93
-            							1 1 -1 0 -1"></feColorMatrix>
-                <!-- offset it to bottom right-->
-                <feOffset dx="16" dy="2"></feOffset>
-
-                <!-- join it with top strip-->
-                <feBlend in="topstrip"></feBlend>
-                <!-- give the outer strips group a couple of shadows-->
-                <feDropShadow stdDeviation="5"></feDropShadow>
-                <feDropShadow stdDeviation="7" result="outstrip"></feDropShadow>
-                <!-- extract middle strip & paint it light green-->
-                <feColorMatrix in="SourceGraphic" values=" 0  0 0 0 .945 
-            		                                       0  0 0 0 .965 
-            											   0  0 0 0 .4 
-            											   -1 1 -1 0 0"></feColorMatrix>
-                <!-- add the outer strips with shadows on top-->
-                <feBlend in="outstrip"></feBlend>
-              </filter>
-
-              <filter id="lights" primitiveUnits="userSpaceOnUse">
+            <filter id="lights" primitiveUnits="userSpaceOnUse">
                 <feImage width="16" height="16" href="resources/light.svg" result="light" />
                 <feTile in="light" result="light-grid" />
                 <feComposite  in="light-grid" in2="SourceAlpha" operator="in" result="lights" />
@@ -294,7 +289,7 @@
                     <feMergeNode in="lights"/>
                     <feMergeNode in="border"/>
                 </feMerge>
-              </filter>
+            </filter>
 
         </defs>
         

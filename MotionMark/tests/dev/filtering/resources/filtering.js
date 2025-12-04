@@ -170,7 +170,7 @@ class Item {
         
         const textValues = [
             'Zoom',
-            'Ooze',
+            'Static',
             'Open',
             'Water',
             'Neon',
