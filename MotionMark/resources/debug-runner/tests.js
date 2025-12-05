@@ -460,8 +460,8 @@ Suites.push(new Suite("Basic canvas path suite",
 Suites.push(new Suite("Tentative 1.4 suite",
     [
         {
-            url: "dev/zine/zine.html",
-            name: "Zine"
+            url: "dev/alice/alice.html",
+            name: "Alice"
         }
     ]
 ));

@@ -1,9 +1,9 @@
-# Zine HTML Test
+# Alice HTML Test
 
 Goals
 -----
 
-Measure HTML/CSS workloads that replicate what a typography-heavy newsletter/zine page might see.
+Measure HTML/CSS workloads that replicate what a typography-heavy page might see.
 
 Design
 ------
