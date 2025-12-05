@@ -157,6 +157,7 @@ class PictureWallLayout3D extends ItemLayout {
         if (this.oneUpFront) {
             startIndex = 1;
             offset = -1;
+            this._container.children[0].classList.add('one-up');
             this._container.children[0].style.transform = `translate(0, ${(this._stageSize.height - this._itemSize.height) / 2}px)`;
         }
         
@@ -227,29 +228,22 @@ class Item {
     #createElements(container)
     {
         this.section = this.#createElement('section', 'item');
+        this.wrapper = this.#createElement('div', 'wrapper');
         
         const writingMode = this.data['writing-mode'];
         if (writingMode)
-            this.section.style.writingMode = writingMode;
+            this.wrapper.style.writingMode = writingMode;
 
         this.heading = this.#createElement('h1', 'heading', this.data['chapter-title']);
         this.bodyText = this.#createElement('p', 'body-text', this.data['paragraph-1']);
         this.marqueeContainer = this.#createElement('div', 'marquee-container');
-        
-        /*
-        const marqeeLine1 = this.#createElement('div', 'line', this.data['paragraph-1']);
-        const marqeeLine2 = this.#createElement('div', 'line', this.data['paragraph-1']);
-        
-        this.#colorizeWords(marqeeLine1);
-        this.#colorizeWords(marqeeLine2);
 
-        this.marqueeContainer.appendChild(marqeeLine1);
-        this.marqueeContainer.appendChild(marqeeLine2);
-        */
+        this.wrapper.appendChild(this.heading);
+        this.wrapper.appendChild(this.bodyText);
+        this.wrapper.appendChild(this.marqueeContainer);
 
-        this.section.appendChild(this.heading);
-        this.section.appendChild(this.bodyText);
-        this.section.appendChild(this.marqueeContainer);
+        this.section.appendChild(this.wrapper);
+        this.section.style.setProperty("--random", Stage.randomInt(0, 4000));
         
         container.appendChild(this.section);
     }
@@ -309,8 +303,8 @@ class NewsletterStage extends Stage {
         const item = new Item(this.container, this.textData[0]);
         const approximateItemSize = item.measureSize()
         item.remove();
-
-        this.layout = new PictureWallLayout3D(this.container, approximateItemSize, new Size(stageRect.width, stageRect.height));
+        
+        this.layout = new RandomPlacementLayout(this.container, approximateItemSize, new Size(stageRect.width, stageRect.height));
     }
 
     tune(count)
@@ -370,7 +364,7 @@ window.benchmarkClass = NewsletterBenchmark;
 class FakeController {
     constructor()
     {
-        this.initialComplexity = 1;
+        this.initialComplexity = 8;
         this.startTime = new Date;
     }
 
