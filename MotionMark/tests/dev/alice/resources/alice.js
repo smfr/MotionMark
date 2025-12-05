@@ -272,11 +272,9 @@ class Item {
 
         this.heading = this.#createElement('h1', 'heading', this.data['chapter-title']);
         this.bodyText = this.#createElement('p', 'body-text', this.data['paragraph-1']);
-        this.marqueeContainer = this.#createElement('div', 'marquee-container');
 
         this.wrapper.appendChild(this.heading);
         this.wrapper.appendChild(this.bodyText);
-        this.wrapper.appendChild(this.marqueeContainer);
 
         this.element.appendChild(this.wrapper);
         this.element.style.setProperty("--random", Stage.randomInt(0, 4000));
