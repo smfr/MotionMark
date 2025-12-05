@@ -26,9 +26,10 @@
 
 
 class ItemLayout {
-    constructor(container, itemSize, stageSize)
+    constructor(stage, itemSize, stageSize)
     {
-        this._container = container;
+        this.stage = stage;
+        this._container = stage.container;
         this._itemSize = itemSize;
         this._stageSize = stageSize;
     }
@@ -36,12 +37,17 @@ class ItemLayout {
     arrangeItems()
     {
     }
+    
+    animateItems()
+    {       
+    }
 }
 
 class RandomPlacementLayout extends ItemLayout {
-    constructor(container, itemSize, stageSize)
+    constructor(stage, itemSize, stageSize)
     {
-        super(container, itemSize, stageSize);
+        super(stage, itemSize, stageSize);
+        this._drifting = true;
         this._container.classList.add('layout-random');
     }
 
@@ -54,21 +60,45 @@ class RandomPlacementLayout extends ItemLayout {
         const allowedMaxXClip = fractionVisible * this._itemSize.width;
         const allowedMaxYClip = fractionVisible * this._itemSize.height;
 
-        for (const child of this._container.children) {
+        for (const item of this.stage.items) {
+            const element = item.element;
 
             const x = Stage.randomInt(-allowedMinXClip, this._stageSize.width - allowedMaxXClip);
             const y = Stage.randomInt(-allowedMinYClip, this._stageSize.height - allowedMaxYClip);
         
-            child.style.left = `${x}px`;
-            child.style.top = `${y}px`;
+            element.style.left = `${x}px`;
+            element.style.top = `${y}px`;
+            
+            if (this._drifting) {
+                const driftScalarMin = -0.5;
+                const driftScalarMax = 0.5;
+                item.velocity = item.velocity || new Size(Stage.random(driftScalarMin, driftScalarMax), Stage.random(driftScalarMin, driftScalarMax));
+            }
+        }
+    }
+
+    animateItems()
+    {
+        if (!this._drifting)
+            return;
+
+        // FIXME: Gecko doesn't supported the CSS Typed OM.
+        for (const item of this.stage.items) {
+            const leftValue = item.element.attributeStyleMap.get('left');
+            leftValue.value += item.velocity.width;
+            item.element.attributeStyleMap.set('left', leftValue);
+
+            const topValue = item.element.attributeStyleMap.get('top');
+            topValue.value += item.velocity.height;
+            item.element.attributeStyleMap.set('top', topValue);
         }
     }
 }
 
 class FanLayout3D extends ItemLayout {
-    constructor(container, itemSize, stageSize)
+    constructor(stage, itemSize, stageSize)
     {
-        super(container, itemSize, stageSize);
+        super(stage, itemSize, stageSize);
         this._container.classList.add('layout-fan');
     }
 
@@ -79,17 +109,17 @@ class FanLayout3D extends ItemLayout {
         const endAngle = 80;
         const angleIncrement = (endAngle - startAngle) / (itemCount - 1);
         
-        for (let i = 0; i < this._container.children.length; ++ i) {
-            const child = this._container.children[i];
+        for (let i = 0; i < this.stage.items.length; ++ i) {
+            const child = this.stage.items[i].element;
             child.style.transform = `rotate3d(0, 1, 0, ${startAngle + angleIncrement * i}deg) translateZ(-50vw)`;
         }
     }
 }
 
 class Grid2DLayout extends ItemLayout {
-    constructor(container, itemSize, stageSize)
+    constructor(stage, itemSize, stageSize)
     {
-        super(container, itemSize, stageSize);
+        super(stage, itemSize, stageSize);
         this._container.classList.add('grid-2d');
     }
 
@@ -106,9 +136,10 @@ class Grid2DLayout extends ItemLayout {
 
         const cellSize = new Size(this._stageSize.width / columnCount, this._stageSize.height / rowCount);
         const scale = Math.min(cellSize.width / this._itemSize.width, cellSize.height / this._itemSize.height);
-        
-        for (let i = 0; i < this._container.children.length; ++ i) {
-            const child = this._container.children[i];
+
+
+        for (let i = 0; i < this.stage.items.length; ++ i) {
+            const child = this.stage.items[i].element;
 
             const row = Math.floor(i / columnCount);
             const col = i % columnCount;
@@ -120,16 +151,16 @@ class Grid2DLayout extends ItemLayout {
 }
 
 class PictureWallLayout3D extends ItemLayout {
-    constructor(container, itemSize, stageSize)
+    constructor(stage, itemSize, stageSize)
     {
-        super(container, itemSize, stageSize);
+        super(stage, itemSize, stageSize);
         this.oneUpFront = true;
         this._container.classList.add('picture-wall');
     }
 
     arrangeItems()
     {
-        let itemCount = this._container.children.length;
+        let itemCount = this.stage.items.length;
         
         if (this.oneUpFront && itemCount > 0)
             --itemCount;
@@ -157,13 +188,14 @@ class PictureWallLayout3D extends ItemLayout {
         if (this.oneUpFront) {
             startIndex = 1;
             offset = -1;
-            this._container.children[0].classList.add('one-up');
-            this._container.children[0].style.transform = `translate(0, ${(this._stageSize.height - this._itemSize.height) / 2}px)`;
+            const firstElement = this.stage.items[0].element;
+            firstElement.classList.add('one-up');
+            firstElement.style.transform = `translate(0, ${(this._stageSize.height - this._itemSize.height) / 2}px)`;
         }
         
-        for (let i = startIndex; i < this._container.children.length; ++ i) {
+        for (let i = startIndex; i < this.stage.items.length; ++ i) {
             const indexInGrid = i + offset;
-            const child = this._container.children[i];
+            const child = this.stage.items[i].element;
 
             const row = Math.floor(indexInGrid / columnCount);
             const col = indexInGrid % columnCount;
@@ -174,15 +206,15 @@ class PictureWallLayout3D extends ItemLayout {
 }
 
 class ZStackLayout3D extends ItemLayout {
-    constructor(container, itemSize, stageSize)
+    constructor(stage, itemSize, stageSize)
     {
-        super(container, itemSize, stageSize);
+        super(stage, itemSize, stageSize);
         this._container.classList.add('z-stack');
     }
 
     arrangeItems()
     {
-        const itemCount = this._container.children.length;
+        const itemCount = this.stage.items.length;
 
         const closeZ = 0;
         const distantZ = 2000;
@@ -198,8 +230,8 @@ class ZStackLayout3D extends ItemLayout {
         const maxY = ySpace;
         const yIncrement = (maxY - minY) / (itemCount - 1);
         
-        for (let i = 0; i < this._container.children.length; ++ i) {
-            const child = this._container.children[i];
+        for (let i = 0; i < this.stage.items.length; ++ i) {
+            const child = this.stage.items[i].element;
             child.style.transform = `translate(${minX + i * xIncrement}px, ${minY + i * yIncrement}px) rotate3d(0, 1, 0, -4deg) translateZ(${closeZ + i * zIncrement}px)`;
         }
     }
@@ -216,23 +248,27 @@ class Item {
     
     remove()
     {
-        this.section.remove();
+        this.element.remove();
     }
     
     measureSize(container)
     {
-        const bounds = this.section.getBoundingClientRect();
+        const bounds = this.element.getBoundingClientRect();
         return new Size(bounds.width, bounds.height);
     }
 
     #createElements(container)
     {
-        this.section = this.#createElement('section', 'item');
+        this.element = this.#createElement('section', 'item');
         this.wrapper = this.#createElement('div', 'wrapper');
         
         const writingMode = this.data['writing-mode'];
         if (writingMode)
             this.wrapper.style.writingMode = writingMode;
+
+        const dir = this.data['direction'];
+        if (dir)
+            this.wrapper.style.direction = dir;
 
         this.heading = this.#createElement('h1', 'heading', this.data['chapter-title']);
         this.bodyText = this.#createElement('p', 'body-text', this.data['paragraph-1']);
@@ -242,10 +278,10 @@ class Item {
         this.wrapper.appendChild(this.bodyText);
         this.wrapper.appendChild(this.marqueeContainer);
 
-        this.section.appendChild(this.wrapper);
-        this.section.style.setProperty("--random", Stage.randomInt(0, 4000));
+        this.element.appendChild(this.wrapper);
+        this.element.style.setProperty("--random", Stage.randomInt(0, 4000));
         
-        container.appendChild(this.section);
+        container.appendChild(this.element);
     }
 
     #createElement(tagName, className, htmlContent)
@@ -285,6 +321,11 @@ class NewsletterStage extends Stage {
         this._complexity = 0;
         this._items = [];
     }
+    
+    get items()
+    {
+        return this._items;
+    }
 
     async initialize(benchmark, options)
     {
@@ -304,7 +345,7 @@ class NewsletterStage extends Stage {
         const approximateItemSize = item.measureSize()
         item.remove();
         
-        this.layout = new RandomPlacementLayout(this.container, approximateItemSize, new Size(stageRect.width, stageRect.height));
+        this.layout = new RandomPlacementLayout(this, approximateItemSize, new Size(stageRect.width, stageRect.height));
     }
 
     tune(count)
@@ -333,9 +374,7 @@ class NewsletterStage extends Stage {
 
     animate()
     {
-        this._items.forEach((item) => {
-            // item.section.style.left = parseInt(item.section.style.left) + 1 + 'px';
-        });
+        this.layout.animateItems();
     }
 
     complexity()
@@ -364,7 +403,7 @@ window.benchmarkClass = NewsletterBenchmark;
 class FakeController {
     constructor()
     {
-        this.initialComplexity = 8;
+        this.initialComplexity = 12;
         this.startTime = new Date;
     }
 
